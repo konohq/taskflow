@@ -1,4 +1,5 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
+ENV["TASKFLOW_AI_JWT_SECRET_KEY"] ||= "test_jwt_secret_key"
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'

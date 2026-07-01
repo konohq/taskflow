@@ -1,4 +1,17 @@
 Rails.application.routes.draw do
+  devise_for :users, skip: :all
+
+  namespace :api do
+    namespace :v1 do
+      namespace :auth do
+        post "sign_up", to: "registrations#create"
+        post "sign_in", to: "sessions#create"
+        delete "sign_out", to: "sessions#destroy"
+        get "me", to: "me#show"
+      end
+    end
+  end
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
