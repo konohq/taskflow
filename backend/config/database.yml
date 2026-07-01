@@ -1,0 +1,46 @@
+# PostgreSQL configuration for TaskFlow AI backend.
+#
+# Rails does not load .env files by default. Set these environment variables
+# in your shell before running database tasks, or use your OS-level environment
+# variable settings.
+#
+# Required for local development when PostgreSQL requires password auth:
+#   TASKFLOW_AI_DATABASE_USERNAME
+#   TASKFLOW_AI_DATABASE_PASSWORD
+#   TASKFLOW_AI_DATABASE_HOST
+
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV["TASKFLOW_AI_DATABASE_USERNAME"] %>
+  password: <%= ENV["TASKFLOW_AI_DATABASE_PASSWORD"] %>
+  host: <%= ENV.fetch("TASKFLOW_AI_DATABASE_HOST", "localhost") %>
+
+development:
+  <<: *default
+  database: taskflow_ai_backend_development
+
+test:
+  <<: *default
+  database: taskflow_ai_backend_test
+
+production:
+  primary: &primary_production
+    <<: *default
+    database: taskflow_ai_backend_production
+    username: <%= ENV["TASKFLOW_AI_DATABASE_USERNAME"] %>
+    password: <%= ENV["TASKFLOW_AI_DATABASE_PASSWORD"] %>
+    host: <%= ENV.fetch("TASKFLOW_AI_DATABASE_HOST", "localhost") %>
+  cache:
+    <<: *primary_production
+    database: taskflow_ai_backend_production_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *primary_production
+    database: taskflow_ai_backend_production_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *primary_production
+    database: taskflow_ai_backend_production_cable
+    migrations_paths: db/cable_migrate

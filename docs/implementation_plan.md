@@ -46,11 +46,36 @@
 
 - Rails アプリが起動できる
 - PostgreSQL に接続できる
+- `dotenv-rails` により development / test で `backend/.env` を自動読み込みできる
+- `TASKFLOW_AI_DATABASE_USERNAME`、`TASKFLOW_AI_DATABASE_PASSWORD`、`TASKFLOW_AI_DATABASE_HOST` でローカルDB接続を設定できる
 - devise-jwt の設定方針が反映されている
 - RSpec が実行できる
 - RuboCop が実行できる
 - Brakeman が実行できる
 - 最小限のヘルスチェックまたは初期テストが通る
+
+### ローカルDB作成手順
+
+development / test 環境では `dotenv-rails` により `backend/.env` が自動で読み込まれます。`backend/.env.example` を参考に、ローカルの PostgreSQL 接続情報を `backend/.env` に設定します。
+
+```env
+TASKFLOW_AI_DATABASE_USERNAME=postgres
+TASKFLOW_AI_DATABASE_PASSWORD=自分のPostgreSQLパスワード
+TASKFLOW_AI_DATABASE_HOST=localhost
+```
+
+PowerShell で一時的に環境変数を設定して実行することもできます。
+
+```powershell
+$env:TASKFLOW_AI_DATABASE_USERNAME="postgres"
+$env:TASKFLOW_AI_DATABASE_PASSWORD="自分のPostgreSQLパスワード"
+$env:TASKFLOW_AI_DATABASE_HOST="localhost"
+
+cd D:/RubyProjects/teamtaskapp/backend
+ruby bin\rails db:create
+```
+
+`backend/.env.example` は設定値のひな形です。実際の秘密情報を入れる `.env` は Git 管理対象にしません。本番環境では `.env` に依存せず、実行環境の環境変数で設定します。
 
 ## フェーズ 2: 認証
 

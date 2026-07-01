@@ -6,7 +6,7 @@ TaskFlow AI は、チームでプロジェクトやタスクを管理できる W
 
 ## 現在の状態
 
-このリポジトリは設計ドキュメント作成段階です。まだ Rails アプリの作成や実装は行っていません。
+このリポジトリはバックエンド Rails API アプリの初期生成段階です。`backend` ディレクトリに Rails API モードのアプリを作成済みです。
 
 ## MVP の範囲
 
@@ -84,4 +84,27 @@ TaskFlow AI では、以下を特に重視します。
 
 ## 実装前の注意
 
-現時点ではドキュメントのみを作成しています。Rails アプリの生成、Gem の追加、モデル・コントローラ・マイグレーションの作成はまだ行いません。
+現時点では Rails API アプリの初期生成まで完了しています。Gem の追加、モデル・コントローラ・マイグレーションの作成、認証実装、API 実装はまだ行いません。
+
+## ローカルDB設定
+
+development / test 環境では `dotenv-rails` により `backend/.env` が自動で読み込まれます。`backend/.env.example` を参考に、ローカルの PostgreSQL 接続情報を `backend/.env` に設定してください。
+
+```env
+TASKFLOW_AI_DATABASE_USERNAME=postgres
+TASKFLOW_AI_DATABASE_PASSWORD=自分のPostgreSQLパスワード
+TASKFLOW_AI_DATABASE_HOST=localhost
+```
+
+PowerShell で一時的に環境変数を設定して実行することもできます。
+
+```powershell
+$env:TASKFLOW_AI_DATABASE_USERNAME="postgres"
+$env:TASKFLOW_AI_DATABASE_PASSWORD="自分のPostgreSQLパスワード"
+$env:TASKFLOW_AI_DATABASE_HOST="localhost"
+
+cd D:/RubyProjects/teamtaskapp/backend
+ruby bin\rails db:create
+```
+
+設定値のひな形は `backend/.env.example` を参照してください。実際の秘密情報を入れる `.env` は Git 管理対象にしません。本番環境では `.env` に依存せず、実行環境の環境変数で設定します。
