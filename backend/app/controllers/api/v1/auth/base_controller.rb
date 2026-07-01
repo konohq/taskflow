@@ -18,11 +18,7 @@ module Api
         end
 
         def render_errors(record)
-          render json: { errors: record.errors.full_messages }, status: :unprocessable_content
-        end
-
-        def render_unauthorized
-          render json: { error: "Invalid email or password" }, status: :unauthorized
+          render_validation_error(record.errors.full_messages)
         end
 
         def jwt_for(user)

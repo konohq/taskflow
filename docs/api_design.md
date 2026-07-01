@@ -24,6 +24,9 @@ Rails は API モードで構築し、DB は PostgreSQL を使用します。フ
 - 認証ヘッダー: `Authorization: Bearer <JWT>`
 - セッション Cookie 認証は使用しない
 - 認証が必要な API では Authorization ヘッダーの JWT を検証し、current_user を基準にデータ取得と認可を行う
+- React SPA で扱いやすいように、認証成功時の JWT は `Authorization` レスポンスヘッダーに加えて JSON body の `token` にも含める
+- devise-jwt は JWT 検証基盤として使用し、MVP ではアプリ側で手動発行した JWT を返す
+- ログアウト時はログインユーザーの `jti` を更新し、既存 JWT を失効させる
 
 ### 共通レスポンス
 
@@ -35,7 +38,29 @@ Rails は API モードで構築し、DB は PostgreSQL を使用します。フ
 {
   "error": {
     "code": "unauthorized",
-    "message": "ログインが必要です"
+    "message": "ログインしてください"
+  }
+}
+```
+
+認可エラーは以下の形式を基本とします。
+
+```json
+{
+  "error": {
+    "code": "forbidden",
+    "message": "この操作を行う権限がありません"
+  }
+}
+```
+
+Not Found は以下の形式を基本とします。
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "リソースが見つかりません"
   }
 }
 ```
@@ -46,10 +71,19 @@ Rails は API モードで構築し、DB は PostgreSQL を使用します。フ
 {
   "error": {
     "code": "validation_error",
-    "message": "入力内容を確認してください",
-    "details": {
-      "name": ["を入力してください"]
-    }
+    "message": "入力内容に誤りがあります",
+    "details": ["Email has already been taken"]
+  }
+}
+```
+
+必須パラメータ不足は以下の形式を基本とします。
+
+```json
+{
+  "error": {
+    "code": "parameter_missing",
+    "message": "必要なパラメータが不足しています"
   }
 }
 ```
@@ -119,7 +153,7 @@ end
 ### ユーザー登録
 
 ```text
-POST /api/v1/signup
+POST /api/v1/auth/sign_up
 ```
 
 リクエスト:
@@ -137,7 +171,7 @@ POST /api/v1/signup
 
 レスポンス:
 
-Authorization レスポンスヘッダーで JWT を返します。
+Authorization レスポンスヘッダーと JSON body の `token` で JWT を返します。
 
 ```text
 Authorization: Bearer <JWT>
@@ -149,28 +183,31 @@ Authorization: Bearer <JWT>
     "id": 1,
     "name": "Yamada Taro",
     "email": "taro@example.com"
-  }
+  },
+  "token": "<JWT>"
 }
 ```
 
 ### ログイン
 
 ```text
-POST /api/v1/login
+POST /api/v1/auth/sign_in
 ```
 
 リクエスト:
 
 ```json
 {
-  "email": "taro@example.com",
-  "password": "password123"
+  "user": {
+    "email": "taro@example.com",
+    "password": "password123"
+  }
 }
 ```
 
 レスポンス:
 
-Authorization レスポンスヘッダーで JWT を返します。
+Authorization レスポンスヘッダーと JSON body の `token` で JWT を返します。
 
 ```text
 Authorization: Bearer <JWT>
@@ -182,14 +219,15 @@ Authorization: Bearer <JWT>
     "id": 1,
     "name": "Yamada Taro",
     "email": "taro@example.com"
-  }
+  },
+  "token": "<JWT>"
 }
 ```
 
 ### ログアウト
 
 ```text
-DELETE /api/v1/logout
+DELETE /api/v1/auth/sign_out
 ```
 
 Authorization ヘッダー:
@@ -204,12 +242,12 @@ Authorization: Bearer <JWT>
 204 No Content
 ```
 
-devise-jwt の revocation strategy により、ログアウト済み JWT を無効化する方針とします。
+MVP では logout 時にログインユーザーの `jti` を更新し、ログアウト済み JWT を無効化する方針とします。
 
 ### ログインユーザー取得
 
 ```text
-GET /api/v1/me
+GET /api/v1/auth/me
 ```
 
 レスポンス:
@@ -711,10 +749,12 @@ RSpec の request spec では、最低限以下を検証します。
 ```ruby
 namespace :api do
   namespace :v1 do
-    post "/signup", to: "users#create"
-    post "/login", to: "sessions#create"
-    delete "/logout", to: "sessions#destroy"
-    get "/me", to: "sessions#show"
+    namespace :auth do
+      post "sign_up", to: "registrations#create"
+      post "sign_in", to: "sessions#create"
+      delete "sign_out", to: "sessions#destroy"
+      get "me", to: "me#show"
+    end
 
     resources :teams, only: %i[index show create update destroy] do
       resources :members, controller: "team_members", only: %i[index create update destroy]
