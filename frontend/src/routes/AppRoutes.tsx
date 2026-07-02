@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '../components/common/ProtectedRoute'
+import { AppLayout } from '../components/layout/AppLayout'
 import { LoginPage } from '../pages/auth/LoginPage'
 import { SignupPage } from '../pages/auth/SignupPage'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -16,11 +17,13 @@ export function AppRoutes() {
       <Route path="/signup" element={<SignupPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/teams" element={<TeamsPage />} />
-        <Route path="/teams/:teamId" element={<TeamDetailPage />} />
-        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-        <Route path="/my/tasks" element={<MyTasksPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/teams/:teamId" element={<TeamDetailPage />} />
+          <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="/my/tasks" element={<MyTasksPage />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
