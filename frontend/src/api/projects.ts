@@ -4,6 +4,7 @@ import type {
   ProjectResponse,
   ProjectsResponse,
 } from '../types/project'
+import type { KanbanResponse } from '../types/task'
 
 export async function fetchTeamProjects(teamId: string) {
   const response = await apiClient.get<ProjectsResponse>(
@@ -25,4 +26,18 @@ export async function createTeamProject(
   )
 
   return response.data.project
+}
+
+export async function fetchProject(projectId: string) {
+  const response = await apiClient.get<ProjectResponse>(`/projects/${projectId}`)
+
+  return response.data.project
+}
+
+export async function fetchProjectKanban(projectId: string) {
+  const response = await apiClient.get<KanbanResponse>(
+    `/projects/${projectId}/kanban`,
+  )
+
+  return response.data
 }
