@@ -11,6 +11,7 @@ class User < ApplicationRecord
                            inverse_of: :created_by
   has_many :assigned_tasks, class_name: "Task", foreign_key: :assignee_id, dependent: :nullify,
                             inverse_of: :assignee
+  has_many :comments, dependent: :restrict_with_error
 
   devise :database_authenticatable,
          :registerable,

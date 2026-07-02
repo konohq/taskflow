@@ -275,7 +275,7 @@ erDiagram
 | id | bigint | PK | コメント ID |
 | task_id | bigint | FK, NOT NULL | タスク ID |
 | user_id | bigint | FK, NOT NULL | 投稿者ユーザー ID |
-| body | text | NOT NULL | コメント本文 |
+| content | text | NOT NULL | コメント本文 |
 | created_at | datetime | NOT NULL | 作成日時 |
 | updated_at | datetime | NOT NULL | 更新日時 |
 
@@ -294,14 +294,14 @@ erDiagram
 
 - task_id は NOT NULL
 - user_id は NOT NULL
-- body は NOT NULL
+- content は NOT NULL
 
 ### バリデーション
 
 - task は必須
 - user は必須
-- body は必須
-- body は最大文字数を設定する
+- content は必須
+- content は最大文字数を設定する
 - user はタスクが属するプロジェクトのチームに所属している必要がある
 
 ### 備考

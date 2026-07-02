@@ -6,6 +6,8 @@ class Task < ApplicationRecord
   belongs_to :created_by, class_name: "User", inverse_of: :created_tasks
   belongs_to :assignee, class_name: "User", optional: true, inverse_of: :assigned_tasks
 
+  has_many :comments, dependent: :destroy
+
   validates :title, presence: true, length: { maximum: 100 }
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :priority, presence: true, inclusion: { in: PRIORITIES }

@@ -666,7 +666,7 @@ POST /api/v1/tasks/:task_id/comments
 ```json
 {
   "comment": {
-    "body": "Authentication API is ready for review."
+    "content": "Authentication API is ready for review."
   }
 }
 ```
@@ -684,7 +684,7 @@ GET /api/v1/tasks/:task_id/comments
   "comments": [
     {
       "id": 1,
-      "body": "Authentication API is ready for review.",
+      "content": "Authentication API is ready for review.",
       "user": {
         "id": 1,
         "name": "Yamada Taro"
