@@ -1,0 +1,29 @@
+import { Route, Routes } from 'react-router-dom'
+import { ProtectedRoute } from '../components/common/ProtectedRoute'
+import { LoginPage } from '../pages/auth/LoginPage'
+import { SignupPage } from '../pages/auth/SignupPage'
+import { DashboardPage } from '../pages/DashboardPage'
+import { MyTasksPage } from '../pages/MyTasksPage'
+import { NotFoundPage } from '../pages/NotFoundPage'
+import { ProjectDetailPage } from '../pages/ProjectDetailPage'
+import { TeamDetailPage } from '../pages/TeamDetailPage'
+import { TeamsPage } from '../pages/TeamsPage'
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/teams" element={<TeamsPage />} />
+        <Route path="/teams/:teamId" element={<TeamDetailPage />} />
+        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+        <Route path="/my/tasks" element={<MyTasksPage />} />
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  )
+}
