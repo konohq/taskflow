@@ -9,6 +9,19 @@ export type Team = {
   updated_at: string
 }
 
+export type TeamsResponse = {
+  teams: Team[]
+}
+
+export type TeamResponse = {
+  team: Team
+}
+
+export type CreateTeamInput = {
+  name: string
+  description: string
+}
+
 export type TeamMember = {
   id: number
   user: {
@@ -18,4 +31,8 @@ export type TeamMember = {
   }
   role: TeamMemberRole
   joined_at: string
+}
+
+export type TeamMembersResponse = {
+  members: TeamMember[]
 }

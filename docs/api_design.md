@@ -289,7 +289,9 @@ POST /api/v1/teams
     "id": 1,
     "name": "Product Team",
     "description": "TaskFlow AI development team",
-    "current_user_role": "owner"
+    "current_user_role": "owner",
+    "created_at": "2026-07-01T00:00:00Z",
+    "updated_at": "2026-07-01T00:00:00Z"
   }
 }
 ```
@@ -309,7 +311,9 @@ GET /api/v1/teams
       "id": 1,
       "name": "Product Team",
       "description": "TaskFlow AI development team",
-      "current_user_role": "owner"
+      "current_user_role": "owner",
+      "created_at": "2026-07-01T00:00:00Z",
+      "updated_at": "2026-07-01T00:00:00Z"
     }
   ]
 }
@@ -329,7 +333,9 @@ GET /api/v1/teams/:id
     "id": 1,
     "name": "Product Team",
     "description": "TaskFlow AI development team",
-    "current_user_role": "owner"
+    "current_user_role": "owner",
+    "created_at": "2026-07-01T00:00:00Z",
+    "updated_at": "2026-07-01T00:00:00Z"
   }
 }
 ```
