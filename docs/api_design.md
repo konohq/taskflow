@@ -477,11 +477,14 @@ POST /api/v1/teams/:team_id/projects
 
 リクエスト:
 
+`status` は `active` / `archived` を指定できます。未指定の場合は `active` になります。
+
 ```json
 {
   "project": {
     "name": "MVP Backend",
-    "description": "Build backend MVP"
+    "description": "Build backend MVP",
+    "status": "active"
   }
 }
 ```
@@ -502,7 +505,9 @@ GET /api/v1/teams/:team_id/projects
       "team_id": 1,
       "name": "MVP Backend",
       "description": "Build backend MVP",
-      "status": "active"
+      "status": "active",
+      "created_at": "2026-07-01T00:00:00Z",
+      "updated_at": "2026-07-01T00:00:00Z"
     }
   ]
 }
@@ -523,7 +528,9 @@ GET /api/v1/projects/:id
     "team_id": 1,
     "name": "MVP Backend",
     "description": "Build backend MVP",
-    "status": "active"
+    "status": "active",
+    "created_at": "2026-07-01T00:00:00Z",
+    "updated_at": "2026-07-01T00:00:00Z"
   }
 }
 ```
