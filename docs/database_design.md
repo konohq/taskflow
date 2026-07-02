@@ -44,13 +44,25 @@ erDiagram
 | id | bigint | PK | ユーザー ID |
 | name | string | NOT NULL | 表示名 |
 | email | string | NOT NULL | ログイン用メールアドレス |
-| password_digest | string | NOT NULL | パスワードハッシュ |
+| encrypted_password | string | NOT NULL, default: "" | devise が管理するパスワードハッシュ |
+| jti | string | NOT NULL | devise-jwt の JWT 失効判定用 ID |
 | created_at | datetime | NOT NULL | 作成日時 |
 | updated_at | datetime | NOT NULL | 更新日時 |
 
 ### インデックス
 
 - `unique index users.lower_email` on `LOWER(email)`
+- `unique index users.jti`
+
+### DB 制約
+
+- name は NOT NULL
+- email は NOT NULL
+- encrypted_password は NOT NULL
+- encrypted_password の default は空文字
+- jti は NOT NULL
+- email は `LOWER(email)` の unique index で大文字小文字を区別せず一意にする
+- jti は unique index で一意にする
 
 ### バリデーション
 
@@ -63,9 +75,11 @@ erDiagram
 
 ### 備考
 
-- Rails 実装時は devise-jwt の利用を想定する
+- Rails 実装では devise / devise-jwt を利用する
 - メールアドレスの一意性はアプリ側と DB 側の両方で保証する
+- email は保存前に downcase する
 - PostgreSQL では `LOWER(email)` の unique index で case-insensitive unique を保証する
+- jti は作成時に自動生成し、ログアウト時に更新して既存 JWT を失効させる
 
 ## teams
 

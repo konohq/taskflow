@@ -581,15 +581,7 @@ POST /api/v1/projects/:project_id/tasks
 GET /api/v1/projects/:project_id/tasks
 ```
 
-クエリパラメータ:
-
-| パラメータ | 説明 |
-| --- | --- |
-| status | ステータスで絞り込み |
-| priority | 優先度で絞り込み |
-| assignee_id | 担当者で絞り込み |
-| due_on_from | 期限の開始日 |
-| due_on_to | 期限の終了日 |
+MVP の通常 Task 一覧 API では、`status` / `priority` / `assignee_id` / `due_on_from` / `due_on_to` による絞り込みは未対応です。
 
 レスポンス:
 
@@ -616,6 +608,8 @@ GET /api/v1/projects/:project_id/tasks
   ]
 }
 ```
+
+Task API レスポンスの `assignee` / `created_by` は `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
 
 ### タスク詳細
 
@@ -713,7 +707,11 @@ GET /api/v1/projects/:project_id/kanban
 
 ```json
 {
-  "kanban": {
+  "project": {
+    "id": 1,
+    "name": "TaskFlow AI"
+  },
+  "columns": {
     "todo": [],
     "in_progress": [],
     "review": [],
@@ -734,11 +732,10 @@ GET /api/v1/my/tasks
 
 | パラメータ | 説明 |
 | --- | --- |
-| team_id | チームで絞り込み |
-| project_id | プロジェクトで絞り込み |
 | status | ステータスで絞り込み |
 | priority | 優先度で絞り込み |
-| due_on_to | 指定日までの期限で絞り込み |
+| due_on_from | 指定日以降の期限で絞り込み |
+| due_on_to | 指定日以前の期限で絞り込み |
 
 レスポンス:
 
@@ -748,9 +745,12 @@ GET /api/v1/my/tasks
     {
       "id": 1,
       "title": "Create authentication API",
+      "description": "Implement signup, login, logout, and me endpoint",
       "status": "todo",
       "priority": "high",
       "due_on": "2026-07-15",
+      "created_at": "2026-07-01T00:00:00Z",
+      "updated_at": "2026-07-01T00:00:00Z",
       "project": {
         "id": 1,
         "name": "MVP Backend"
@@ -758,11 +758,21 @@ GET /api/v1/my/tasks
       "team": {
         "id": 1,
         "name": "Product Team"
+      },
+      "created_by": {
+        "id": 1,
+        "name": "Yamada Taro"
+      },
+      "assignee": {
+        "id": 1,
+        "name": "Yamada Taro"
       }
     }
   ]
 }
 ```
+
+My Tasks API の `created_by` / `assignee` も `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
 
 ## 認可テスト観点
 
