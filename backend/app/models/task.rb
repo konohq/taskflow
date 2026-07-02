@@ -57,8 +57,7 @@ class Task < ApplicationRecord
 
     {
       id: user.id,
-      name: user.name,
-      email: user.email
+      name: user.name
     }
   end
 end

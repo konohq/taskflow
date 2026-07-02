@@ -607,6 +607,10 @@ GET /api/v1/projects/:project_id/tasks
       "assignee": {
         "id": 2,
         "name": "Sato Hanako"
+      },
+      "created_by": {
+        "id": 1,
+        "name": "Yamada Taro"
       }
     }
   ]
@@ -618,6 +622,8 @@ GET /api/v1/projects/:project_id/tasks
 ```text
 GET /api/v1/tasks/:id
 ```
+
+レスポンスの `assignee` / `created_by` は `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
 
 ### タスク編集
 
