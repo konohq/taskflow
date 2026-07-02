@@ -39,7 +39,9 @@ Rails は API モードで構築し、DB は PostgreSQL を使用します。フ
 ### チームメンバー
 
 - owner または admin はチームメンバーを追加できる
-- owner または admin はチームメンバーの権限を変更できる
+- owner のみチームメンバーの権限を変更できる
+- admin はチームメンバーの権限を変更できない
+- 権限変更は admin / member 間のみ許可し、owner 自身の権限変更と owner への権限変更はできない
 - owner または admin はチームメンバーを削除できる
 - member はチームメンバー一覧を閲覧できる
 - 他チームのメンバー情報にはアクセスできない
@@ -101,9 +103,11 @@ MVP では TeamMember に以下の role を持たせます。
 
 - owner はチーム削除ができる
 - owner はメンバー追加・削除ができる
-- owner は role 変更ができる
+- owner は admin / member 間の role 変更ができる
+- owner は自分自身の role 変更と、他メンバーへの owner 付与はできない
 - owner はプロジェクト、タスク、コメントを管理できる
 - admin はメンバー追加ができる
+- admin は role 変更ができない
 - admin はプロジェクト、タスク、コメントを管理できる
 - admin は owner の削除、owner の降格、owner への変更はできない
 - member はチーム、プロジェクト、タスクを閲覧できる

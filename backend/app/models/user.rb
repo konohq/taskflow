@@ -1,6 +1,11 @@
 class User < ApplicationRecord
   include Devise::JWT::RevocationStrategies::JTIMatcher
 
+  has_many :team_members, dependent: :destroy
+  has_many :teams, through: :team_members
+  has_many :created_teams, class_name: "Team", foreign_key: :created_by_id, dependent: :restrict_with_error,
+                           inverse_of: :created_by
+
   devise :database_authenticatable,
          :registerable,
          :validatable,

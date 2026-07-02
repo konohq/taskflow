@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::API
   rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+  rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
 
   private
 
@@ -49,6 +50,10 @@ class ApplicationController < ActionController::API
       message: "必要なパラメータが不足しています",
       status: :bad_request
     )
+  end
+
+  def render_record_invalid(exception)
+    render_validation_error(exception.record.errors.full_messages)
   end
 
   def render_error(code:, message:, status:, details: nil)

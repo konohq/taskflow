@@ -9,6 +9,10 @@ Rails.application.routes.draw do
         delete "sign_out", to: "sessions#destroy"
         get "me", to: "me#show"
       end
+
+      resources :teams, only: %i[index show create update destroy] do
+        resources :members, controller: "team_members", only: %i[index create update destroy]
+      end
     end
   end
 
