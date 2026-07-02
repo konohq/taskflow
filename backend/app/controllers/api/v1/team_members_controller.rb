@@ -38,7 +38,7 @@ module Api
         return render_forbidden if @team_member.owner?
         return render_forbidden if @current_membership.admin? && !@team_member.member?
 
-        @team_member.destroy!
+        @team_member.destroy_with_task_unassignment!
         head :no_content
       end
 

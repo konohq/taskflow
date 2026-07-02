@@ -7,6 +7,10 @@ class User < ApplicationRecord
                            inverse_of: :created_by
   has_many :created_projects, class_name: "Project", foreign_key: :created_by_id, dependent: :restrict_with_error,
                               inverse_of: :created_by
+  has_many :created_tasks, class_name: "Task", foreign_key: :created_by_id, dependent: :restrict_with_error,
+                           inverse_of: :created_by
+  has_many :assigned_tasks, class_name: "Task", foreign_key: :assignee_id, dependent: :nullify,
+                            inverse_of: :assignee
 
   devise :database_authenticatable,
          :registerable,

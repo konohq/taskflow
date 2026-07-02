@@ -616,13 +616,13 @@ GET /api/v1/projects/:project_id/tasks
 ### タスク詳細
 
 ```text
-GET /api/v1/projects/:project_id/tasks/:id
+GET /api/v1/tasks/:id
 ```
 
 ### タスク編集
 
 ```text
-PATCH /api/v1/projects/:project_id/tasks/:id
+PATCH /api/v1/tasks/:id
 ```
 
 リクエスト:
@@ -632,7 +632,7 @@ PATCH /api/v1/projects/:project_id/tasks/:id
   "task": {
     "title": "Create session authentication API",
     "status": "in_progress",
-    "priority": "urgent",
+    "priority": "high",
     "due_on": "2026-07-10",
     "assignee_id": 2
   }
@@ -642,7 +642,7 @@ PATCH /api/v1/projects/:project_id/tasks/:id
 ### タスク削除
 
 ```text
-DELETE /api/v1/projects/:project_id/tasks/:id
+DELETE /api/v1/tasks/:id
 ```
 
 Task 削除時は、紐づく Comment も削除します。Rails 実装では `dependent: :destroy` を使用します。
@@ -793,10 +793,10 @@ namespace :api do
 
     resources :projects, only: %i[show update destroy] do
       get "kanban", to: "kanban#show"
-      resources :tasks, only: %i[index show create update destroy]
+      resources :tasks, only: %i[index create]
     end
 
-    resources :tasks, only: [] do
+    resources :tasks, only: %i[show update destroy] do
       resources :comments, only: %i[index create]
     end
 

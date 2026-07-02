@@ -4,6 +4,8 @@ class Project < ApplicationRecord
   belongs_to :team
   belongs_to :created_by, class_name: "User", inverse_of: :created_projects
 
+  has_many :tasks, dependent: :destroy
+
   validates :name, presence: true, length: { maximum: 100 }
   validates :status, presence: true, inclusion: { in: STATUSES }
 

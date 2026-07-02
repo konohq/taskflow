@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_02_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_02_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -26,6 +26,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_090000) do
     t.index ["team_id", "status"], name: "index_projects_on_team_id_and_status"
     t.index ["team_id"], name: "index_projects_on_team_id"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'archived'::character varying]::text[])", name: "check_projects_status"
+  end
+
+  create_table "tasks", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "status", default: "todo", null: false
+    t.string "priority", default: "medium", null: false
+    t.date "due_on"
+    t.bigint "assignee_id"
+    t.bigint "created_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assignee_id"], name: "index_tasks_on_assignee_id"
+    t.index ["created_by_id"], name: "index_tasks_on_created_by_id"
+    t.index ["due_on"], name: "index_tasks_on_due_on"
+    t.index ["project_id", "status"], name: "index_tasks_on_project_id_and_status"
+    t.index ["project_id"], name: "index_tasks_on_project_id"
+    t.check_constraint "priority::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying]::text[])", name: "check_tasks_priority"
+    t.check_constraint "status::text = ANY (ARRAY['todo'::character varying, 'in_progress'::character varying, 'review'::character varying, 'done'::character varying]::text[])", name: "check_tasks_status"
   end
 
   create_table "team_members", force: :cascade do |t|
@@ -64,6 +84,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_090000) do
 
   add_foreign_key "projects", "teams"
   add_foreign_key "projects", "users", column: "created_by_id"
+  add_foreign_key "tasks", "projects"
+  add_foreign_key "tasks", "users", column: "assignee_id"
+  add_foreign_key "tasks", "users", column: "created_by_id"
   add_foreign_key "team_members", "teams"
   add_foreign_key "team_members", "users"
   add_foreign_key "teams", "users", column: "created_by_id"

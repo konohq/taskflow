@@ -31,7 +31,22 @@ class TeamMember < ApplicationRecord
     }
   end
 
+  def destroy_with_task_unassignment!
+    self.class.transaction do
+      assigned_tasks_in_team.find_each do |task|
+        task.update!(assignee: nil)
+      end
+
+      destroy!
+    end
+  end
+
   private
+
+  def assigned_tasks_in_team
+    Task.joins(:project)
+        .where(projects: { team_id: team_id }, assignee_id: user_id)
+  end
 
   def set_joined_at
     self.joined_at ||= Time.current

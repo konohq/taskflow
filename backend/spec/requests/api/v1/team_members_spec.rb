@@ -205,6 +205,37 @@ RSpec.describe "Api::V1::TeamMembers", type: :request do
       expect(response).to have_http_status(:no_content)
     end
 
+    it "unassigns tasks assigned to the deleted member in the target team" do
+      owner = create(:user)
+      member_user = create(:user)
+      team = create_team_with_member(owner, "owner")
+      member = create(:team_member, team: team, user: member_user, role: "member")
+      project = create(:project, team: team, created_by: owner)
+      task = create(:task, project: project, created_by: owner, assignee: member_user)
+
+      delete "/api/v1/teams/#{team.id}/members/#{member.id}", headers: authorization_header(owner)
+
+      expect(response).to have_http_status(:no_content)
+      expect(task.reload.assignee).to be_nil
+    end
+
+    it "does not unassign tasks assigned to the deleted member in another team" do
+      owner = create(:user)
+      other_owner = create(:user)
+      member_user = create(:user)
+      team = create_team_with_member(owner, "owner")
+      member = create(:team_member, team: team, user: member_user, role: "member")
+      other_team = create_team_with_member(other_owner, "owner")
+      create(:team_member, team: other_team, user: member_user, role: "member")
+      other_project = create(:project, team: other_team, created_by: other_owner)
+      other_task = create(:task, project: other_project, created_by: other_owner, assignee: member_user)
+
+      delete "/api/v1/teams/#{team.id}/members/#{member.id}", headers: authorization_header(owner)
+
+      expect(response).to have_http_status(:no_content)
+      expect(other_task.reload.assignee).to eq(member_user)
+    end
+
     it "does not allow admin to delete owner or admin" do
       owner = create(:user)
       admin = create(:user)

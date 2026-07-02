@@ -214,7 +214,7 @@ erDiagram
 | title | string | NOT NULL | タスク名 |
 | description | text |  | タスク説明 |
 | status | string | NOT NULL, default: todo | todo, in_progress, review, done |
-| priority | string | NOT NULL, default: medium | low, medium, high, urgent |
+| priority | string | NOT NULL, default: medium | low, medium, high |
 | due_on | date |  | 期限 |
 | assignee_id | bigint | FK | 担当者ユーザー ID |
 | created_by_id | bigint | FK, NOT NULL | 作成者ユーザー ID |
@@ -245,7 +245,7 @@ erDiagram
 - priority の default は `medium`
 - created_by_id は NOT NULL
 - status は `todo`, `in_progress`, `review`, `done` のみ許可する
-- priority は `low`, `medium`, `high`, `urgent` のみ許可する
+- priority は `low`, `medium`, `high` のみ許可する
 
 ### バリデーション
 
