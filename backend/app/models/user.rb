@@ -5,6 +5,8 @@ class User < ApplicationRecord
   has_many :teams, through: :team_members
   has_many :created_teams, class_name: "Team", foreign_key: :created_by_id, dependent: :restrict_with_error,
                            inverse_of: :created_by
+  has_many :created_projects, class_name: "Project", foreign_key: :created_by_id, dependent: :restrict_with_error,
+                              inverse_of: :created_by
 
   devise :database_authenticatable,
          :registerable,

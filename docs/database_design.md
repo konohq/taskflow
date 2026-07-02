@@ -199,7 +199,8 @@ erDiagram
 
 ### 備考
 
-- MVP ではプロジェクト削除は対象外
+- MVP ではプロジェクト削除を対象とし、所属チーム内のメンバーが削除できる
+- チーム削除時は関連する Project も削除する
 - archived は将来の非表示や終了状態のために用意する
 
 ## tasks
@@ -335,20 +336,21 @@ Comment.find(params[:id])
 
 ## 削除方針
 
-MVP では明示的に必要な削除はタスク削除のみです。
+MVP では Team、TeamMember、Project、Task の削除を対象とします。
 
 | 対象 | MVP での削除 | 方針 |
 | --- | --- | --- |
 | User | 対象外 | 将来検討 |
 | Team | 対象 | owner のみ削除可能。関連する TeamMember、Project、Task、Comment も削除する |
 | TeamMember | 対象 | owner 0 人は禁止 |
-| Project | 対象外 | archived で代替 |
+| Project | 対象 | 所属チーム内のメンバーが削除可能。Team 削除時も関連 Project を削除する |
 | Task | 対象 | 紐づくコメントも削除する |
 | Comment | 対象外 | タスク削除時のみ一緒に削除される |
 
 ### dependent 方針
 
 - Team 削除時は Rails の `dependent: :destroy` により、関連する TeamMember、Project、Task、Comment も削除する
+- Project 削除時は Rails の `dependent: :destroy` により、将来紐づく Task、Comment も削除する
 - Task 削除時は Rails の `dependent: :destroy` により紐づく Comment も削除する
 - TeamMember 削除時は Task を削除せず、対象チーム内の担当タスクの assignee_id を null にする
 

@@ -10,9 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_01_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_02_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "projects", force: :cascade do |t|
+    t.bigint "team_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "status", default: "active", null: false
+    t.bigint "created_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_projects_on_created_by_id"
+    t.index ["team_id", "status"], name: "index_projects_on_team_id_and_status"
+    t.index ["team_id"], name: "index_projects_on_team_id"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'archived'::character varying]::text[])", name: "check_projects_status"
+  end
 
   create_table "team_members", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -48,6 +62,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_090000) do
     t.index ["jti"], name: "index_users_on_jti", unique: true
   end
 
+  add_foreign_key "projects", "teams"
+  add_foreign_key "projects", "users", column: "created_by_id"
   add_foreign_key "team_members", "teams"
   add_foreign_key "team_members", "users"
   add_foreign_key "teams", "users", column: "created_by_id"

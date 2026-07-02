@@ -505,7 +505,7 @@ GET /api/v1/teams/:team_id/projects
 ### プロジェクト詳細
 
 ```text
-GET /api/v1/teams/:team_id/projects/:id
+GET /api/v1/projects/:id
 ```
 
 レスポンス:
@@ -520,6 +520,36 @@ GET /api/v1/teams/:team_id/projects/:id
     "status": "active"
   }
 }
+```
+
+### プロジェクト更新
+
+```text
+PATCH /api/v1/projects/:id
+```
+
+リクエスト:
+
+```json
+{
+  "project": {
+    "name": "MVP Backend Phase 2",
+    "description": "Build backend MVP and prepare task APIs",
+    "status": "archived"
+  }
+}
+```
+
+### プロジェクト削除
+
+```text
+DELETE /api/v1/projects/:id
+```
+
+レスポンス:
+
+```text
+204 No Content
 ```
 
 ## タスク API
@@ -758,11 +788,10 @@ namespace :api do
 
     resources :teams, only: %i[index show create update destroy] do
       resources :members, controller: "team_members", only: %i[index create update destroy]
-      resources :projects, only: %i[index show create] do
-      end
+      resources :projects, only: %i[index create]
     end
 
-    resources :projects, only: [] do
+    resources :projects, only: %i[show update destroy] do
       get "kanban", to: "kanban#show"
       resources :tasks, only: %i[index show create update destroy]
     end
