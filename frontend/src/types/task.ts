@@ -21,6 +21,19 @@ export type Task = {
   updated_at: string
 }
 
+export type TaskResponse = {
+  task: Task
+}
+
+export type CreateTaskInput = {
+  title: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  due_on: string | null
+  assignee_id: number | null
+}
+
 export type MyTask = Task & {
   project: {
     id: number

@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchProject, fetchProjectKanban } from '../api/projects'
+import { fetchTeamMembers } from '../api/teamMembers'
+import { createProjectTask } from '../api/tasks'
 import type { Project, ProjectStatus } from '../types/project'
+import type { TeamMember } from '../types/team'
 import type {
+  CreateTaskInput,
   KanbanResponse,
   Task,
   TaskPriority,
@@ -133,8 +138,17 @@ export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const [project, setProject] = useState<Project | null>(null)
   const [kanban, setKanban] = useState<KanbanResponse | null>(null)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskDescription, setTaskDescription] = useState('')
+  const [taskStatus, setTaskStatus] = useState<TaskStatus>('todo')
+  const [taskPriority, setTaskPriority] = useState<TaskPriority>('medium')
+  const [taskDueOn, setTaskDueOn] = useState('')
+  const [taskAssigneeId, setTaskAssigneeId] = useState('')
+  const [taskErrorMessage, setTaskErrorMessage] = useState('')
+  const [isTaskSubmitting, setIsTaskSubmitting] = useState(false)
 
   const loadProjectDetail = useCallback(async () => {
     if (!projectId) {
@@ -151,9 +165,13 @@ export function ProjectDetailPage() {
         fetchProject(projectId),
         fetchProjectKanban(projectId),
       ])
+      const fetchedTeamMembers = await fetchTeamMembers(
+        String(fetchedProject.team_id),
+      )
 
       setProject(fetchedProject)
       setKanban(fetchedKanban)
+      setTeamMembers(fetchedTeamMembers)
     } catch (error) {
       setErrorMessage(
         getApiErrorMessage(error, 'プロジェクト詳細を取得できませんでした。'),
@@ -166,6 +184,68 @@ export function ProjectDetailPage() {
   useEffect(() => {
     void loadProjectDetail()
   }, [loadProjectDetail])
+
+  const handleTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isTaskSubmitting) return
+
+    if (!projectId) {
+      setTaskErrorMessage('プロジェクトIDが見つかりません。')
+      return
+    }
+
+    const trimmedTitle = taskTitle.trim()
+    const trimmedDescription = taskDescription.trim()
+
+    if (!trimmedTitle) {
+      setTaskErrorMessage('タスクタイトルを入力してください。')
+      return
+    }
+
+    const input: CreateTaskInput = {
+      title: trimmedTitle,
+      description: trimmedDescription,
+      status: taskStatus,
+      priority: taskPriority,
+      due_on: taskDueOn || null,
+      assignee_id: taskAssigneeId ? Number(taskAssigneeId) : null,
+    }
+
+    setIsTaskSubmitting(true)
+    setTaskErrorMessage('')
+
+    try {
+      const createdTask = await createProjectTask(projectId, input)
+
+      setKanban((currentKanban) => {
+        if (!currentKanban) return currentKanban
+
+        return {
+          ...currentKanban,
+          columns: {
+            ...currentKanban.columns,
+            [createdTask.status]: [
+              createdTask,
+              ...currentKanban.columns[createdTask.status],
+            ],
+          },
+        }
+      })
+      setTaskTitle('')
+      setTaskDescription('')
+      setTaskStatus('todo')
+      setTaskPriority('medium')
+      setTaskDueOn('')
+      setTaskAssigneeId('')
+    } catch (error) {
+      setTaskErrorMessage(
+        getApiErrorMessage(error, 'タスクを作成できませんでした。'),
+      )
+    } finally {
+      setIsTaskSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -206,6 +286,148 @@ export function ProjectDetailPage() {
               <ProjectStatusBadge status={project.status} />
             </div>
           </section>
+
+          <form
+            className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+            onSubmit={(event) => {
+              void handleTaskSubmit(event)
+            }}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">
+                  タスク作成
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  このプロジェクトに新しいタスクを追加します。
+                </p>
+              </div>
+              <span className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
+                担当者は任意
+              </span>
+            </div>
+
+            {taskErrorMessage ? (
+              <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                {taskErrorMessage}
+              </div>
+            ) : null}
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <label className="block lg:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  title
+                </span>
+                <input
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                  disabled={isTaskSubmitting}
+                  onChange={(event) => {
+                    setTaskTitle(event.target.value)
+                  }}
+                  placeholder="例: ログイン画面の入力チェックを追加"
+                  type="text"
+                  value={taskTitle}
+                />
+              </label>
+
+              <label className="block lg:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  description
+                </span>
+                <textarea
+                  className="mt-2 min-h-24 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                  disabled={isTaskSubmitting}
+                  onChange={(event) => {
+                    setTaskDescription(event.target.value)
+                  }}
+                  placeholder="タスクの詳細を入力"
+                  value={taskDescription}
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">
+                  status
+                </span>
+                <select
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                  disabled={isTaskSubmitting}
+                  onChange={(event) => {
+                    setTaskStatus(event.target.value as TaskStatus)
+                  }}
+                  value={taskStatus}
+                >
+                  {kanbanColumns.map((column) => (
+                    <option key={column.status} value={column.status}>
+                      {column.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">
+                  priority
+                </span>
+                <select
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                  disabled={isTaskSubmitting}
+                  onChange={(event) => {
+                    setTaskPriority(event.target.value as TaskPriority)
+                  }}
+                  value={taskPriority}
+                >
+                  <option value="low">低</option>
+                  <option value="medium">中</option>
+                  <option value="high">高</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">
+                  due_on
+                </span>
+                <input
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                  disabled={isTaskSubmitting}
+                  onChange={(event) => {
+                    setTaskDueOn(event.target.value)
+                  }}
+                  type="date"
+                  value={taskDueOn}
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">
+                  assignee_id
+                </span>
+                <select
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                  disabled={isTaskSubmitting}
+                  onChange={(event) => {
+                    setTaskAssigneeId(event.target.value)
+                  }}
+                  value={taskAssigneeId}
+                >
+                  <option value="">未設定</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.user.id}>
+                      {member.user.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <button
+              className="mt-5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
+              disabled={isTaskSubmitting}
+              type="submit"
+            >
+              {isTaskSubmitting ? '作成しています...' : 'タスクを作成'}
+            </button>
+          </form>
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
