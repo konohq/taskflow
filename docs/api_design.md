@@ -630,6 +630,32 @@ Task API レスポンスの `assignee` / `created_by` は `id` と `name` のみ
 GET /api/v1/tasks/:id
 ```
 
+レスポンス:
+
+```json
+{
+  "task": {
+    "id": 1,
+    "project_id": 1,
+    "title": "Create authentication API",
+    "description": "Implement signup, login, logout, and me endpoint",
+    "status": "todo",
+    "priority": "high",
+    "due_on": "2026-07-15",
+    "assignee": {
+      "id": 2,
+      "name": "Sato Hanako"
+    },
+    "created_by": {
+      "id": 1,
+      "name": "Yamada Taro"
+    },
+    "created_at": "2026-07-01T00:00:00Z",
+    "updated_at": "2026-07-01T00:00:00Z"
+  }
+}
+```
+
 レスポンスの `assignee` / `created_by` は `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
 
 ### タスク編集

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchProject, fetchProjectKanban } from '../api/projects'
 import { fetchTeamMembers } from '../api/teamMembers'
-import { createProjectTask } from '../api/tasks'
+import { createProjectTask, fetchTask, updateTask } from '../api/tasks'
 import type { Project, ProjectStatus } from '../types/project'
 import type { TeamMember } from '../types/team'
 import type {
@@ -12,6 +12,7 @@ import type {
   Task,
   TaskPriority,
   TaskStatus,
+  UpdateTaskInput,
 } from '../types/task'
 import { getApiErrorMessage } from '../utils/apiError'
 
@@ -30,6 +31,24 @@ const taskPriorityLabels: Record<TaskPriority, string> = {
   medium: '中',
   high: '高',
 }
+
+const taskPriorityOptions: Array<{
+  priority: TaskPriority
+  title: string
+}> = [
+  {
+    priority: 'low',
+    title: '低',
+  },
+  {
+    priority: 'medium',
+    title: '中',
+  },
+  {
+    priority: 'high',
+    title: '高',
+  },
+]
 
 const taskPriorityClasses: Record<TaskPriority, string> = {
   low: 'border-emerald-100 bg-emerald-50 text-emerald-700',
@@ -100,9 +119,64 @@ function formatDate(value: string | null) {
   return `${year}/${month}/${day}`
 }
 
-function TaskCard({ task }: { task: Task }) {
+function replaceTaskInKanban(
+  currentKanban: KanbanResponse,
+  updatedTask: Task,
+): KanbanResponse {
+  const nextColumns: Record<TaskStatus, Task[]> = {
+    todo: [],
+    in_progress: [],
+    review: [],
+    done: [],
+  }
+  let inserted = false
+
+  kanbanColumns.forEach((column) => {
+    nextColumns[column.status] = currentKanban.columns[column.status].flatMap(
+      (task) => {
+        if (task.id !== updatedTask.id) return [task]
+
+        if (column.status === updatedTask.status) {
+          inserted = true
+          return [updatedTask]
+        }
+
+        return []
+      },
+    )
+  })
+
+  if (!inserted) {
+    nextColumns[updatedTask.status] = [
+      updatedTask,
+      ...nextColumns[updatedTask.status],
+    ]
+  }
+
+  return {
+    ...currentKanban,
+    columns: nextColumns,
+  }
+}
+
+function TaskCard({
+  isSelected,
+  onClick,
+  task,
+}: {
+  isSelected: boolean
+  onClick: () => void
+  task: Task
+}) {
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <button
+      className={[
+        'block w-full rounded-lg border bg-white p-4 text-left shadow-sm transition hover:border-indigo-200 hover:shadow focus:outline-none focus:ring-4 focus:ring-indigo-100',
+        isSelected ? 'border-indigo-300 ring-4 ring-indigo-100' : 'border-slate-200',
+      ].join(' ')}
+      onClick={onClick}
+      type="button"
+    >
       <div className="flex items-start justify-between gap-3">
         <h4 className="min-w-0 break-words text-sm font-semibold leading-6 text-slate-950">
           {task.title}
@@ -130,7 +204,7 @@ function TaskCard({ task }: { task: Task }) {
           </dd>
         </div>
       </dl>
-    </article>
+    </button>
   )
 }
 
@@ -149,6 +223,29 @@ export function ProjectDetailPage() {
   const [taskAssigneeId, setTaskAssigneeId] = useState('')
   const [taskErrorMessage, setTaskErrorMessage] = useState('')
   const [isTaskSubmitting, setIsTaskSubmitting] = useState(false)
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [isTaskDetailLoading, setIsTaskDetailLoading] = useState(false)
+  const [taskDetailErrorMessage, setTaskDetailErrorMessage] = useState('')
+  const [taskUpdateMessage, setTaskUpdateMessage] = useState('')
+  const [isTaskUpdating, setIsTaskUpdating] = useState(false)
+  const [editTaskTitle, setEditTaskTitle] = useState('')
+  const [editTaskDescription, setEditTaskDescription] = useState('')
+  const [editTaskStatus, setEditTaskStatus] = useState<TaskStatus>('todo')
+  const [editTaskPriority, setEditTaskPriority] =
+    useState<TaskPriority>('medium')
+  const [editTaskDueOn, setEditTaskDueOn] = useState('')
+  const [editTaskAssigneeId, setEditTaskAssigneeId] = useState('')
+  const selectedTaskIdRef = useRef<number | null>(null)
+
+  const setEditFormValues = useCallback((task: Task) => {
+    setEditTaskTitle(task.title)
+    setEditTaskDescription(task.description ?? '')
+    setEditTaskStatus(task.status)
+    setEditTaskPriority(task.priority)
+    setEditTaskDueOn(task.due_on ?? '')
+    setEditTaskAssigneeId(task.assignee ? String(task.assignee.id) : '')
+  }, [])
 
   const loadProjectDetail = useCallback(async () => {
     if (!projectId) {
@@ -172,6 +269,11 @@ export function ProjectDetailPage() {
       setProject(fetchedProject)
       setKanban(fetchedKanban)
       setTeamMembers(fetchedTeamMembers)
+      selectedTaskIdRef.current = null
+      setSelectedTaskId(null)
+      setSelectedTask(null)
+      setTaskDetailErrorMessage('')
+      setTaskUpdateMessage('')
     } catch (error) {
       setErrorMessage(
         getApiErrorMessage(error, 'プロジェクト詳細を取得できませんでした。'),
@@ -244,6 +346,93 @@ export function ProjectDetailPage() {
       )
     } finally {
       setIsTaskSubmitting(false)
+    }
+  }
+
+  const handleTaskSelect = async (taskId: number) => {
+    selectedTaskIdRef.current = taskId
+    setSelectedTaskId(taskId)
+    setSelectedTask(null)
+    setIsTaskDetailLoading(true)
+    setTaskDetailErrorMessage('')
+    setTaskUpdateMessage('')
+
+    try {
+      const fetchedTask = await fetchTask(String(taskId))
+
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setSelectedTask(fetchedTask)
+      setEditFormValues(fetchedTask)
+    } catch (error) {
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setTaskDetailErrorMessage(
+        getApiErrorMessage(error, 'タスク詳細を取得できませんでした。'),
+      )
+    } finally {
+      if (selectedTaskIdRef.current === taskId) {
+        setIsTaskDetailLoading(false)
+      }
+    }
+  }
+
+  const handleTaskUpdate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isTaskUpdating) return
+
+    if (!selectedTask) {
+      setTaskDetailErrorMessage('編集するタスクを選択してください。')
+      return
+    }
+
+    if (selectedTaskIdRef.current !== selectedTask.id) {
+      setTaskDetailErrorMessage('選択中のタスク詳細を読み込んでいます。')
+      return
+    }
+
+    const trimmedTitle = editTaskTitle.trim()
+    const trimmedDescription = editTaskDescription.trim()
+
+    if (!trimmedTitle) {
+      setTaskDetailErrorMessage('タスクタイトルを入力してください。')
+      return
+    }
+
+    const input: UpdateTaskInput = {
+      title: trimmedTitle,
+      description: trimmedDescription,
+      status: editTaskStatus,
+      priority: editTaskPriority,
+      due_on: editTaskDueOn || null,
+      assignee_id: editTaskAssigneeId ? Number(editTaskAssigneeId) : null,
+    }
+
+    setIsTaskUpdating(true)
+    setTaskDetailErrorMessage('')
+    setTaskUpdateMessage('')
+
+    try {
+      const updatedTask = await updateTask(String(selectedTask.id), input)
+
+      setKanban((currentKanban) => {
+        if (!currentKanban) return currentKanban
+
+        return replaceTaskInKanban(currentKanban, updatedTask)
+      })
+
+      if (selectedTaskIdRef.current === updatedTask.id) {
+        setSelectedTask(updatedTask)
+        setEditFormValues(updatedTask)
+        setTaskUpdateMessage('タスクを更新しました。')
+      }
+    } catch (error) {
+      setTaskDetailErrorMessage(
+        getApiErrorMessage(error, 'タスクを更新できませんでした。'),
+      )
+    } finally {
+      setIsTaskUpdating(false)
     }
   }
 
@@ -377,9 +566,11 @@ export function ProjectDetailPage() {
                   }}
                   value={taskPriority}
                 >
-                  <option value="low">低</option>
-                  <option value="medium">中</option>
-                  <option value="high">高</option>
+                  {taskPriorityOptions.map((option) => (
+                    <option key={option.priority} value={option.priority}>
+                      {option.title}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -428,6 +619,195 @@ export function ProjectDetailPage() {
               {isTaskSubmitting ? '作成しています...' : 'タスクを作成'}
             </button>
           </form>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">
+                  タスク詳細・編集
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  カンバンのタスクを選択すると詳細を確認し、内容を更新できます。
+                </p>
+              </div>
+              {selectedTask ? (
+                <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                  Task #{selectedTask.id}
+                </span>
+              ) : null}
+            </div>
+
+            {!selectedTaskId ? (
+              <div className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                編集するタスクをカンバンから選択してください。
+              </div>
+            ) : null}
+
+            {isTaskDetailLoading ? (
+              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                タスク詳細を読み込んでいます。
+              </div>
+            ) : null}
+
+            {taskDetailErrorMessage ? (
+              <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                {taskDetailErrorMessage}
+              </div>
+            ) : null}
+
+            {taskUpdateMessage ? (
+              <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">
+                {taskUpdateMessage}
+              </div>
+            ) : null}
+
+            {selectedTask && !isTaskDetailLoading ? (
+              <form
+                className="mt-5 grid gap-4 lg:grid-cols-2"
+                onSubmit={(event) => {
+                  void handleTaskUpdate(event)
+                }}
+              >
+                <label className="block lg:col-span-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    title
+                  </span>
+                  <input
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={isTaskUpdating}
+                    onChange={(event) => {
+                      setEditTaskTitle(event.target.value)
+                    }}
+                    type="text"
+                    value={editTaskTitle}
+                  />
+                </label>
+
+                <label className="block lg:col-span-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    description
+                  </span>
+                  <textarea
+                    className="mt-2 min-h-28 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={isTaskUpdating}
+                    onChange={(event) => {
+                      setEditTaskDescription(event.target.value)
+                    }}
+                    value={editTaskDescription}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    status
+                  </span>
+                  <select
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={isTaskUpdating}
+                    onChange={(event) => {
+                      setEditTaskStatus(event.target.value as TaskStatus)
+                    }}
+                    value={editTaskStatus}
+                  >
+                    {kanbanColumns.map((column) => (
+                      <option key={column.status} value={column.status}>
+                        {column.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    priority
+                  </span>
+                  <select
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={isTaskUpdating}
+                    onChange={(event) => {
+                      setEditTaskPriority(event.target.value as TaskPriority)
+                    }}
+                    value={editTaskPriority}
+                  >
+                    {taskPriorityOptions.map((option) => (
+                      <option key={option.priority} value={option.priority}>
+                        {option.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    due_on
+                  </span>
+                  <input
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={isTaskUpdating}
+                    onChange={(event) => {
+                      setEditTaskDueOn(event.target.value)
+                    }}
+                    type="date"
+                    value={editTaskDueOn}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    assignee_id
+                  </span>
+                  <select
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={isTaskUpdating}
+                    onChange={(event) => {
+                      setEditTaskAssigneeId(event.target.value)
+                    }}
+                    value={editTaskAssigneeId}
+                  >
+                    <option value="">未設定</option>
+                    {teamMembers.map((member) => (
+                      <option key={member.id} value={member.user.id}>
+                        {member.user.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="lg:col-span-2">
+                  <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs font-semibold text-slate-500">
+                        作成者
+                      </dt>
+                      <dd className="mt-1 font-medium text-slate-800">
+                        {selectedTask.created_by.name}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold text-slate-500">
+                        最終更新
+                      </dt>
+                      <dd className="mt-1 font-medium text-slate-800">
+                        {new Date(selectedTask.updated_at).toLocaleString(
+                          'ja-JP',
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <button
+                    className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                    disabled={isTaskUpdating}
+                    type="submit"
+                  >
+                    {isTaskUpdating ? '更新しています...' : 'タスクを更新'}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+          </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -482,7 +862,14 @@ export function ProjectDetailPage() {
                           </div>
                         ) : (
                           tasks.map((task) => (
-                            <TaskCard key={task.id} task={task} />
+                            <TaskCard
+                              isSelected={selectedTaskId === task.id}
+                              key={task.id}
+                              onClick={() => {
+                                void handleTaskSelect(task.id)
+                              }}
+                              task={task}
+                            />
                           ))
                         )}
                       </div>

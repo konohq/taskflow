@@ -1,5 +1,9 @@
 import { apiClient } from './client'
-import type { CreateTaskInput, TaskResponse } from '../types/task'
+import type {
+  CreateTaskInput,
+  TaskResponse,
+  UpdateTaskInput,
+} from '../types/task'
 
 export async function createProjectTask(
   projectId: string,
@@ -11,6 +15,20 @@ export async function createProjectTask(
       task: input,
     },
   )
+
+  return response.data.task
+}
+
+export async function fetchTask(taskId: string) {
+  const response = await apiClient.get<TaskResponse>(`/tasks/${taskId}`)
+
+  return response.data.task
+}
+
+export async function updateTask(taskId: string, input: UpdateTaskInput) {
+  const response = await apiClient.patch<TaskResponse>(`/tasks/${taskId}`, {
+    task: input,
+  })
 
   return response.data.task
 }

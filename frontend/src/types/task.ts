@@ -34,6 +34,8 @@ export type CreateTaskInput = {
   assignee_id: number | null
 }
 
+export type UpdateTaskInput = CreateTaskInput
+
 export type MyTask = Task & {
   project: {
     id: number
