@@ -6,6 +6,7 @@ import { SignupPage } from '../pages/auth/SignupPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { MyTasksPage } from '../pages/MyTasksPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { ProjectsPage } from '../pages/ProjectsPage'
 import { ProjectDetailPage } from '../pages/ProjectDetailPage'
 import { TeamDetailPage } from '../pages/TeamDetailPage'
 import { TeamsPage } from '../pages/TeamsPage'
@@ -21,6 +22,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/teams" element={<TeamsPage />} />
           <Route path="/teams/:teamId" element={<TeamDetailPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/my/tasks" element={<MyTasksPage />} />
         </Route>

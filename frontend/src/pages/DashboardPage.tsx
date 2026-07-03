@@ -218,15 +218,11 @@ export function DashboardPage() {
             <ActionLink
               description={
                 recentProjects[0]
-                  ? '最近更新されたプロジェクトのカンバンを開きます。'
+                  ? '所属チーム内のプロジェクトを一覧で確認します。'
                   : 'チーム詳細からプロジェクトを作成できます。'
               }
               label="プロジェクト"
-              to={
-                recentProjects[0]
-                  ? `/projects/${recentProjects[0].id}`
-                  : '/teams'
-              }
+              to="/projects"
             />
           </section>
 
@@ -243,9 +239,9 @@ export function DashboardPage() {
                 </div>
                 <Link
                   className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100"
-                  to="/teams"
+                  to="/projects"
                 >
-                  チームへ
+                  すべて
                 </Link>
               </div>
 

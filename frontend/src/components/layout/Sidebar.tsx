@@ -27,9 +27,10 @@ const navItems: NavItem[] = [
   },
   {
     label: 'プロジェクト',
-    description: 'カンバンを開く',
-    to: '/teams',
-    match: (pathname) => pathname.startsWith('/projects/'),
+    description: '一覧とカンバン',
+    to: '/projects',
+    match: (pathname) =>
+      pathname === '/projects' || pathname.startsWith('/projects/'),
   },
   {
     label: '作成タスク',
