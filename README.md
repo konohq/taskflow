@@ -155,6 +155,7 @@ bundle install
 TASKFLOW_AI_DATABASE_USERNAME=postgres
 TASKFLOW_AI_DATABASE_PASSWORD=your_password_here
 TASKFLOW_AI_DATABASE_HOST=localhost
+DATABASE_URL=postgresql://user:password@host:5432/database_name
 TASKFLOW_AI_JWT_SECRET_KEY=your_jwt_secret_key_here
 SECRET_KEY_BASE=your_secret_key_base_here
 FRONTEND_ORIGIN=http://localhost:5173
@@ -197,6 +198,64 @@ npm.cmd run dev
 ```
 
 デフォルトでは Backend が `http://localhost:3000`、Frontend が `http://localhost:5173` で起動します。
+
+## デプロイ
+
+本番環境は Backend を Render Web Service、Database を Neon PostgreSQL、Frontend を Vercel に配置する想定です。
+
+### Neon PostgreSQL
+
+Neon で PostgreSQL プロジェクトを作成し、接続文字列を取得します。
+
+- `DATABASE_URL`: Neon の PostgreSQL connection string
+
+実際の DB パスワードや接続文字列は Git 管理せず、Render の環境変数に設定します。
+
+### Render Backend
+
+Render Web Service は `backend/Dockerfile` を使って Docker デプロイします。production 環境では `DATABASE_URL` を優先して PostgreSQL に接続します。
+
+Render に設定する主な環境変数:
+
+```env
+RAILS_ENV=production
+RAILS_SERVE_STATIC_FILES=true
+DATABASE_URL=postgresql://user:password@host:5432/database_name
+SECRET_KEY_BASE=your_secret_key_base_here
+TASKFLOW_AI_JWT_SECRET_KEY=your_jwt_secret_key_here
+FRONTEND_ORIGIN=https://your-vercel-app.vercel.app
+```
+
+Render の設定例:
+
+- Root Directory: `backend`
+- Environment: Docker
+- Health Check Path: `/up`
+- Start Command: Dockerfile の `CMD` を使用
+
+DB マイグレーションは Docker entrypoint の `bin/docker-entrypoint` で `rails db:prepare` を実行します。手動で実行する場合は、Render Shell から以下を実行します。
+
+```bash
+bin/rails db:migrate
+```
+
+### Vercel Frontend
+
+Vercel は `frontend` ディレクトリをデプロイ対象にします。
+
+Vercel に設定する環境変数:
+
+```env
+VITE_API_BASE_URL=https://your-render-api.onrender.com/api/v1
+```
+
+Vercel の設定例:
+
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+
+Render 側の `FRONTEND_ORIGIN` には、Vercel の本番 URL を設定します。ローカル開発では `http://localhost:5173` と `http://127.0.0.1:5173` も CORS 許可済みです。
 
 ## 確認コマンド
 
@@ -253,5 +312,5 @@ npm.cmd run lint
 - コメント編集、削除
 - カンバンのドラッグアンドドロップ
 - 通知、横断検索、アクティビティ履歴
-- Koyeb + Neon PostgreSQL + Vercel への本番デプロイ
+- Render + Neon PostgreSQL + Vercel への本番デプロイ
 - AI によるタスク分解、進捗要約、今日やるべきタスク提案

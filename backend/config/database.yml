@@ -8,6 +8,9 @@
 #   TASKFLOW_AI_DATABASE_USERNAME
 #   TASKFLOW_AI_DATABASE_PASSWORD
 #   TASKFLOW_AI_DATABASE_HOST
+#
+# Production uses DATABASE_URL, for example the PostgreSQL connection string
+# provided by Render or Neon.
 
 default: &default
   adapter: postgresql
@@ -27,20 +30,32 @@ test:
 
 production:
   primary: &primary_production
-    <<: *default
+    adapter: postgresql
+    encoding: unicode
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+<% if ENV["DATABASE_URL"].to_s.empty? %>
     database: taskflow_ai_backend_production
     username: <%= ENV["TASKFLOW_AI_DATABASE_USERNAME"] %>
     password: <%= ENV["TASKFLOW_AI_DATABASE_PASSWORD"] %>
     host: <%= ENV.fetch("TASKFLOW_AI_DATABASE_HOST", "localhost") %>
+<% else %>
+    url: <%= ENV["DATABASE_URL"] %>
+<% end %>
   cache:
     <<: *primary_production
+<% if ENV["DATABASE_URL"].to_s.empty? %>
     database: taskflow_ai_backend_production_cache
+<% end %>
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
+<% if ENV["DATABASE_URL"].to_s.empty? %>
     database: taskflow_ai_backend_production_queue
+<% end %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
+<% if ENV["DATABASE_URL"].to_s.empty? %>
     database: taskflow_ai_backend_production_cable
+<% end %>
     migrations_paths: db/cable_migrate

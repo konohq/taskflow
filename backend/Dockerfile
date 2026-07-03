@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-# This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
+# This Dockerfile is designed for production, not development. Use with Render or build'n'run by hand:
 # docker build -t backend .
-# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name backend backend
+# docker run -d -p 80:80 -e DATABASE_URL=<value> -e SECRET_KEY_BASE=<value> --name backend backend
 
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
@@ -70,6 +70,7 @@ USER 1000:1000
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-# Start server via Thruster by default, this can be overwritten at runtime
+# Start server via Thruster by default, this can be overwritten at runtime.
+# Bind to 0.0.0.0 so Render can route traffic to the container.
 EXPOSE 80
-CMD ["./bin/thrust", "./bin/rails", "server"]
+CMD ["./bin/thrust", "./bin/rails", "server", "-b", "0.0.0.0"]
