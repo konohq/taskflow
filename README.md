@@ -1,8 +1,8 @@
-# TaskFlow AI
+# TaskFlow
 
 ## アプリ概要
 
-TaskFlow AI は、チームでプロジェクト、タスク、コメントを管理できる Web アプリです。
+TaskFlow は、チームでプロジェクト、タスク、コメントを管理できる Web アプリです。
 
 Rails API と React SPA で構成され、現在は MVP として認証、Team、Project、Task、Comment、Kanban、自分のタスク一覧の主要機能を実装済みです。将来的には、タスクの自動分解、進捗要約、今日やるべきタスクの提案などの AI 機能を追加する予定です。
 

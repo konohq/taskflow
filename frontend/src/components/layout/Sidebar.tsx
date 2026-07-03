@@ -56,7 +56,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
         <div className="min-w-0">
           <p className="truncate text-base font-semibold text-slate-950">
-            TaskFlow AI
+            TaskFlow
           </p>
           <p className="text-xs text-slate-500">Team workspace</p>
         </div>

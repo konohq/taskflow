@@ -50,7 +50,7 @@ export function SignupPage() {
   return (
     <AuthShell
       title="新規登録"
-      description="TaskFlow AI のワークスペースを作成し、チームでタスク管理を始めます。"
+      description="TaskFlow のワークスペースを作成し、チームでタスク管理を始めます。"
       footer={
         <>
           すでにアカウントをお持ちの場合は{' '}

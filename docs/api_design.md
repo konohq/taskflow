@@ -1,4 +1,4 @@
-# TaskFlow AI API 設計
+# TaskFlow API 設計
 
 ## 基本方針
 
@@ -276,7 +276,7 @@ POST /api/v1/teams
 {
   "team": {
     "name": "Product Team",
-    "description": "TaskFlow AI development team"
+    "description": "TaskFlow development team"
   }
 }
 ```
@@ -288,7 +288,7 @@ POST /api/v1/teams
   "team": {
     "id": 1,
     "name": "Product Team",
-    "description": "TaskFlow AI development team",
+    "description": "TaskFlow development team",
     "current_user_role": "owner",
     "created_at": "2026-07-01T00:00:00Z",
     "updated_at": "2026-07-01T00:00:00Z"
@@ -310,7 +310,7 @@ GET /api/v1/teams
     {
       "id": 1,
       "name": "Product Team",
-      "description": "TaskFlow AI development team",
+      "description": "TaskFlow development team",
       "current_user_role": "owner",
       "created_at": "2026-07-01T00:00:00Z",
       "updated_at": "2026-07-01T00:00:00Z"
@@ -332,7 +332,7 @@ GET /api/v1/teams/:id
   "team": {
     "id": 1,
     "name": "Product Team",
-    "description": "TaskFlow AI development team",
+    "description": "TaskFlow development team",
     "current_user_role": "owner",
     "created_at": "2026-07-01T00:00:00Z",
     "updated_at": "2026-07-01T00:00:00Z"
@@ -354,7 +354,7 @@ owner のみ実行できます。
 {
   "team": {
     "name": "Product Platform Team",
-    "description": "TaskFlow AI backend and platform team"
+    "description": "TaskFlow backend and platform team"
   }
 }
 ```
@@ -756,7 +756,7 @@ GET /api/v1/projects/:project_id/kanban
 {
   "project": {
     "id": 1,
-    "name": "TaskFlow AI"
+    "name": "TaskFlow"
   },
   "columns": {
     "todo": [],

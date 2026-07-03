@@ -1,4 +1,4 @@
-# PostgreSQL configuration for TaskFlow AI backend.
+# PostgreSQL configuration for TaskFlow backend.
 #
 # Rails does not load .env files by default. Set these environment variables
 # in your shell before running database tasks, or use your OS-level environment

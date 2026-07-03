@@ -22,7 +22,7 @@ export function AuthShell({
               TF
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">TaskFlow AI</p>
+              <p className="text-sm font-medium text-slate-500">TaskFlow</p>
               <p className="text-xs text-slate-400">Team task management</p>
             </div>
           </div>

@@ -1,8 +1,8 @@
-# TaskFlow AI 要件定義
+# TaskFlow 要件定義
 
 ## 目的
 
-TaskFlow AI は、チームがプロジェクトとタスクを管理するための Web アプリです。
+TaskFlow は、チームがプロジェクトとタスクを管理するための Web アプリです。
 
 MVP では、認証、認可、チーム単位のデータ分離、Project / Task / Comment 管理、カンバン表示、自分の担当タスク一覧、自分が作成したタスク一覧を扱います。バックエンドは Rails API、フロントエンドは React SPA として実装し、Rails API から取得した実データを画面に表示します。
 

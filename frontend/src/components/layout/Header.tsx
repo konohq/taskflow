@@ -13,7 +13,7 @@ function getPageTitle(pathname: string) {
   if (pathname === '/projects') return 'プロジェクト'
   if (pathname.startsWith('/projects/')) return 'プロジェクト詳細'
   if (pathname === '/my/tasks') return '作成したタスク'
-  return 'TaskFlow AI'
+  return 'TaskFlow'
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
@@ -53,7 +53,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            TaskFlow AI
+            TaskFlow
           </p>
           <h1 className="truncate text-lg font-semibold text-slate-950">
             {getPageTitle(location.pathname)}

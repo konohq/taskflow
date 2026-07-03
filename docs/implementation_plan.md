@@ -1,8 +1,8 @@
-# TaskFlow AI 実装計画
+# TaskFlow 実装計画
 
 ## 基本方針
 
-TaskFlow AI は、Rails API と React SPA で段階的に実装します。
+TaskFlow は、Rails API と React SPA で段階的に実装します。
 
 バックエンドでは、認証、認可、チーム単位のデータ分離、Strong Parameters、before_action、DB 制約、RSpec を重視します。フロントエンドでは、既存 API 仕様に合わせた TypeScript 型、Axios による API 通信、認証状態管理、ローディング・エラー・空状態を重視します。
 
