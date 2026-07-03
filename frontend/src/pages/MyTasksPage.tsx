@@ -84,13 +84,23 @@ const taskPriorityOptions: Array<{
 ]
 
 function formatDate(value: string | null) {
-  if (!value) return '期限未設定'
+  if (!value) return '期限日未設定'
 
   const [year, month, day] = value.split('-')
 
   if (!year || !month || !day) return value
 
   return `${year}/${month}/${day}`
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
 }
 
 function TaskStatusBadge({ status }: { status: TaskStatus }) {
@@ -147,9 +157,9 @@ function TaskCard({
         </div>
       </div>
 
-      <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+      <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-6">
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <dt className="text-xs font-semibold text-slate-500">期限</dt>
+          <dt className="text-xs font-semibold text-slate-500">期限日</dt>
           <dd className="mt-1 font-medium text-slate-800">
             {formatDate(task.due_on)}
           </dd>
@@ -170,6 +180,12 @@ function TaskCard({
           <dt className="text-xs font-semibold text-slate-500">作成者</dt>
           <dd className="mt-1 truncate font-medium text-slate-800">
             {task.created_by.name}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <dt className="text-xs font-semibold text-slate-500">作成日時</dt>
+          <dd className="mt-1 truncate font-medium text-slate-800">
+            {formatDateTime(task.created_at)}
           </dd>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -232,7 +248,7 @@ export function MyTasksPage() {
       filters.due_on_to &&
       filters.due_on_from > filters.due_on_to
     ) {
-      setErrorMessage('期限の開始日は終了日以前の日付を指定してください。')
+      setErrorMessage('期限日の開始日は終了日以前の日付を指定してください。')
       return
     }
 
@@ -261,7 +277,7 @@ export function MyTasksPage() {
               作成したタスク
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              自分が作成したタスクを、ステータス・優先度・期限で絞り込んで確認できます。
+              自分が作成したタスクを、ステータス・優先度・期限日で絞り込んで確認できます。
             </p>
           </div>
           <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
@@ -321,7 +337,7 @@ export function MyTasksPage() {
 
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">
-              due_on_from
+              期限日（開始）
             </span>
             <input
               className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
@@ -339,7 +355,7 @@ export function MyTasksPage() {
 
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">
-              due_on_to
+              期限日（終了）
             </span>
             <input
               className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"

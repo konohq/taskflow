@@ -132,7 +132,7 @@ export function TaskCreateForm({
         </label>
 
         <label className="block">
-          <span className="text-sm font-semibold text-slate-700">due_on</span>
+          <span className="text-sm font-semibold text-slate-700">期限日</span>
           <input
             className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
             disabled={isTaskSubmitting}

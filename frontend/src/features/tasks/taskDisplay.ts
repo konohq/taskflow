@@ -58,7 +58,7 @@ export const kanbanColumns: Array<{
 ]
 
 export function formatDate(value: string | null) {
-  if (!value) return '期限未設定'
+  if (!value) return '期限日未設定'
 
   const [year, month, day] = value.split('-')
 

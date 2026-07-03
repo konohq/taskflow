@@ -27,7 +27,7 @@ export function TaskCard({ isSelected, onClick, task }: TaskCardProps) {
 
       <dl className="mt-4 space-y-3 text-sm">
         <div className="flex items-center justify-between gap-3">
-          <dt className="text-xs font-semibold text-slate-500">期限</dt>
+          <dt className="text-xs font-semibold text-slate-500">期限日</dt>
           <dd className="text-right text-xs font-medium text-slate-700">
             {formatDate(task.due_on)}
           </dd>

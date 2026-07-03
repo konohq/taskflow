@@ -573,6 +573,8 @@ DELETE /api/v1/projects/:id
 POST /api/v1/projects/:project_id/tasks
 ```
 
+`due_on` は期限日です。作成日時は Rails の `created_at` として自動保存されるため、フロントエンドから送信しません。
+
 リクエスト:
 
 ```json
@@ -609,6 +611,8 @@ MVP の通常 Task 一覧 API では、`status` / `priority` / `assignee_id` / `
       "status": "todo",
       "priority": "high",
       "due_on": "2026-07-15",
+      "created_at": "2026-07-01T00:00:00Z",
+      "updated_at": "2026-07-01T00:00:00Z",
       "assignee": {
         "id": 2,
         "name": "Sato Hanako"
@@ -623,6 +627,7 @@ MVP の通常 Task 一覧 API では、`status` / `priority` / `assignee_id` / `
 ```
 
 Task API レスポンスの `assignee` / `created_by` は `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
+Task API レスポンスの `due_on` は期限日、`created_at` は Rails が自動保存した作成日時です。
 
 ### タスク詳細
 
@@ -657,6 +662,7 @@ GET /api/v1/tasks/:id
 ```
 
 レスポンスの `assignee` / `created_by` は `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
+レスポンスの `due_on` は期限日、`created_at` は作成日時です。
 
 ### タスク編集
 
@@ -677,6 +683,8 @@ PATCH /api/v1/tasks/:id
   }
 }
 ```
+
+`created_at` は更新リクエストでは送信しません。作成日時は Rails の自動生成値をレスポンスで参照します。
 
 ### タスク削除
 
@@ -775,8 +783,8 @@ GET /api/v1/my/tasks
 | --- | --- |
 | status | ステータスで絞り込み |
 | priority | 優先度で絞り込み |
-| due_on_from | 指定日以降の期限で絞り込み |
-| due_on_to | 指定日以前の期限で絞り込み |
+| due_on_from | 指定日以降の期限日で絞り込み |
+| due_on_to | 指定日以前の期限日で絞り込み |
 
 レスポンス:
 
@@ -831,8 +839,8 @@ GET /api/v1/my/created_tasks
 | --- | --- |
 | status | ステータスで絞り込み |
 | priority | 優先度で絞り込み |
-| due_on_from | 指定日以降の期限で絞り込み |
-| due_on_to | 指定日以前の期限で絞り込み |
+| due_on_from | 指定日以降の期限日で絞り込み |
+| due_on_to | 指定日以前の期限日で絞り込み |
 
 レスポンス:
 

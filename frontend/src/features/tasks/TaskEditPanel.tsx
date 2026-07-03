@@ -187,7 +187,7 @@ export function TaskEditPanel({
 
             <label className="block">
               <span className="text-sm font-semibold text-slate-700">
-                due_on
+                期限日
               </span>
               <input
                 className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
@@ -222,13 +222,21 @@ export function TaskEditPanel({
             </label>
 
             <div className="lg:col-span-2">
-              <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+              <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-3">
                 <div>
                   <dt className="text-xs font-semibold text-slate-500">
                     作成者
                   </dt>
                   <dd className="mt-1 font-medium text-slate-800">
                     {selectedTask.created_by.name}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold text-slate-500">
+                    作成日時
+                  </dt>
+                  <dd className="mt-1 font-medium text-slate-800">
+                    {formatDateTime(selectedTask.created_at)}
                   </dd>
                 </div>
                 <div>

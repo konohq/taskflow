@@ -13,7 +13,7 @@ type DashboardProject = Project & {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return '期限未設定'
+  if (!value) return '期限日未設定'
 
   const [year, month, day] = value.split('-')
 
@@ -211,7 +211,7 @@ export function DashboardPage() {
               to="/teams"
             />
             <ActionLink
-              description="期限やステータスで自分が作成したタスクを確認します。"
+              description="期限日やステータスで自分が作成したタスクを確認します。"
               label="作成したタスク"
               to="/my/tasks"
             />
@@ -278,7 +278,7 @@ export function DashboardPage() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-950">
-                    期限が近い作成タスク
+                    期限日が近い作成タスク
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
                     自分が作成したタスクです。
@@ -311,7 +311,7 @@ export function DashboardPage() {
                         {task.team.name} / {task.project.name}
                       </p>
                       <p className="mt-2 text-xs font-semibold text-slate-700">
-                        {formatDate(task.due_on)}
+                        期限日 {formatDate(task.due_on)}
                       </p>
                     </Link>
                   ))}
