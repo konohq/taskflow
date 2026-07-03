@@ -2,322 +2,239 @@
 
 ## 基本方針
 
-実装はバックエンド MVP を優先します。Rails は API モード、DB は PostgreSQL、認証は devise-jwt による Bearer Token 方式で進めます。UI 設計と React SPA の実装は、認証、チーム、プロジェクト、タスク、コメントの主要 API が完成してから行います。
+TaskFlow AI は、Rails API と React SPA で段階的に実装します。
 
-現在はバックエンド MVP の主要機能を実装済みです。認証 API、Team / TeamMember API、Project API、Task API、Comment 一覧・作成 API、My Tasks API、Kanban API は実装済みで、RSpec / RuboCop / Brakeman も通過済みです。
+バックエンドでは、認証、認可、チーム単位のデータ分離、Strong Parameters、before_action、DB 制約、RSpec を重視します。フロントエンドでは、既存 API 仕様に合わせた TypeScript 型、Axios による API 通信、認証状態管理、ローディング・エラー・空状態を重視します。
 
-次のフェーズは、バックエンド API を前提にしたフロントエンド設計・実装です。
+## 現在の進捗概要
+
+- Backend MVP の主要 API は実装済み
+- 認証、Team、TeamMember、Project、Task、Comment、Kanban、My Tasks API は実装済み
+- Backend の RSpec / RuboCop / Brakeman は実行可能な状態
+- Frontend MVP の主要画面は実装済み
+- ログイン、ユーザー登録、Team、Project、Task、Comment、My Tasks の画面は実装済み
+- ProjectDetailPage は Kanban / Task / Comment の機能コンポーネントへ分割済み
+- README と docs は現在の実装状況に合わせて更新済み
 
 ## フェーズ 0: 設計ドキュメント整備（完了）
 
 目的: 実装前に MVP の範囲、DB、API、実装順序を明確にする。
 
-作成するドキュメント:
+完了済み:
 
 - README.md
 - docs/requirements.md
 - docs/database_design.md
 - docs/api_design.md
 - docs/implementation_plan.md
-
-完了条件:
-
-- MVP 機能が整理されている
-- 主要モデルが整理されている
-- チーム単位の認可とデータ分離方針が明記されている
-- devise-jwt による Bearer Token 認証方針が明記されている
-- DB 制約とバリデーション方針が明記されている
-- API のルーティングと入出力が整理されている
+- docs/frontend_design.md
 
 ## フェーズ 1: Rails アプリ作成と開発基盤（完了）
 
 目的: バックエンド MVP の土台を作る。
 
-主な作業:
+完了済み:
 
-- Rails API モードでアプリを作成する
-- PostgreSQL を設定する
-- devise-jwt を導入する
-- RSpec を導入する
-- FactoryBot などテスト補助ライブラリを検討する
-- RuboCop を導入する
-- Brakeman を導入する
-- CI を導入するか検討する
-
-完了条件:
-
-- Rails アプリが起動できる
-- PostgreSQL に接続できる
-- `dotenv-rails` により development / test で `backend/.env` を自動読み込みできる
-- `TASKFLOW_AI_DATABASE_USERNAME`、`TASKFLOW_AI_DATABASE_PASSWORD`、`TASKFLOW_AI_DATABASE_HOST` でローカルDB接続を設定できる
-- devise-jwt の設定方針が反映されている
-- RSpec が実行できる
-- RuboCop が実行できる
-- Brakeman が実行できる
-- 最小限のヘルスチェックまたは初期テストが通る
-
-### ローカルDB作成手順
-
-development / test 環境では `dotenv-rails` により `backend/.env` が自動で読み込まれます。`backend/.env.example` を参考に、ローカルの PostgreSQL 接続情報を `backend/.env` に設定します。
-
-```env
-TASKFLOW_AI_DATABASE_USERNAME=postgres
-TASKFLOW_AI_DATABASE_PASSWORD=自分のPostgreSQLパスワード
-TASKFLOW_AI_DATABASE_HOST=localhost
-TASKFLOW_AI_JWT_SECRET_KEY=任意の長いランダム文字列
-```
-
-PowerShell で一時的に環境変数を設定して実行することもできます。
-
-```powershell
-$env:TASKFLOW_AI_DATABASE_USERNAME="postgres"
-$env:TASKFLOW_AI_DATABASE_PASSWORD="自分のPostgreSQLパスワード"
-$env:TASKFLOW_AI_DATABASE_HOST="localhost"
-$env:TASKFLOW_AI_JWT_SECRET_KEY="任意の長いランダム文字列"
-
-cd D:/RubyProjects/teamtaskapp/backend
-ruby bin\rails db:create
-```
-
-`backend/.env.example` は設定値のひな形です。実際の秘密情報を入れる `.env` は Git 管理対象にしません。本番環境では `.env` に依存せず、実行環境の環境変数で設定します。
+- Rails API モードのアプリ構築
+- PostgreSQL 設定
+- devise-jwt 導入
+- dotenv-rails 導入
+- RSpec 導入
+- FactoryBot / Faker 導入
+- RuboCop 導入
+- Brakeman 導入
+- ヘルスチェック確認
 
 ## フェーズ 2: 認証（完了）
 
 目的: ユーザー登録、ログイン、ログアウト、ログインユーザー取得を実装する。
 
-主な作業:
+完了済み:
 
-- User モデルを作成する
-- users テーブルを作成する
-- devise-jwt による JWT 発行と検証を実装する
-- ユーザー登録 API を実装する
-- ログイン API を実装する
-- ログアウト API を実装する
-- ログインユーザー取得 API を実装する
-- `authenticate_user!` を実装する
-
-重視する点:
-
-- devise-jwt を使い、セッション Cookie 認証は使用しない
-- Authorization ヘッダーの Bearer Token を検証する
-- current_user を基準にデータ取得と認可を行う
-- パスワードを平文保存しない
-- email は保存前に downcase する
-- PostgreSQL の `LOWER(email)` unique index で case-insensitive unique を保証する
-- Strong Parameters を使う
-- 認証処理を private メソッドで整理する
-
-テスト:
-
-- ユーザー登録できる
-- 重複 email で登録できない
-- 正しい認証情報でログインできる
-- 間違った認証情報でログインできない
-- ログアウトできる
-- 未ログイン時に `/me` が 401 になる
-- JWT なし、JWT 不正、ログアウト済み JWT では 401 になる
+- User モデル
+- users テーブル
+- devise-jwt による JWT 発行と検証
+- `POST /api/v1/auth/sign_up`
+- `POST /api/v1/auth/sign_in`
+- `DELETE /api/v1/auth/sign_out`
+- `GET /api/v1/auth/me`
+- `authenticate_user!`
+- JWT 失効用の `jti` 更新
 
 ## フェーズ 3: チームとチームメンバー（完了）
 
 目的: チーム作成、一覧、詳細、メンバー管理を実装する。
 
-主な作業:
+完了済み:
 
-- Team モデルを作成する
-- TeamMember モデルを作成する
-- teams テーブルを作成する
-- team_members テーブルを作成する
-- チーム作成 API を実装する
-- チーム一覧 API を実装する
-- チーム詳細 API を実装する
-- チーム更新 API を実装する
-- チーム削除 API を実装する
-- チームメンバー一覧 API を実装する
-- チームメンバー追加 API を実装する
-- チームメンバー権限変更 API を実装する
-- チームメンバー削除 API を実装する
-- `set_team` と `authorize_team_member!` を実装する
-
-重視する点:
-
-- チーム作成時に作成者を owner として登録する
-- Team と TeamMember 作成はトランザクションで行う
-- 他チームのデータを取得できないようにする
-- owner が 0 人になる操作を禁止する
-- TeamMember の role は DB 制約とバリデーションで制限する
-- role は owner、admin、member の 3 種類にする
-- member 削除時、そのユーザーが担当していた対象チーム内のタスクの assignee_id を null にする
-
-テスト:
-
-- チームを作成できる
-- 作成者が owner になる
-- 所属チーム一覧のみ取得できる
-- 非所属チームの詳細を取得できない
-- owner または admin はメンバー追加できる
-- member はメンバー追加できない
-- 同じユーザーを同じチームへ重複追加できない
-- owner が 0 人になる削除や権限変更はできない
-- admin は owner の削除、owner の降格、owner への変更ができない
-- メンバー削除時に対象チーム内の担当タスクの assignee_id が null になる
+- Team モデル
+- TeamMember モデル
+- teams / team_members テーブル
+- チーム作成、一覧、詳細、更新、削除 API
+- チームメンバー一覧、追加、権限変更、削除 API
+- owner / admin / member の role 制御
+- 他チームデータの参照防止
+- owner が 0 人になる操作の防止
+- メンバー削除時の対象チーム内 Task `assignee_id` 解除
 
 ## フェーズ 4: プロジェクト（完了）
 
 目的: チーム内のプロジェクト作成、一覧、詳細、更新、削除を実装する。
 
-主な作業:
+完了済み:
 
-- Project モデルを作成する
-- projects テーブルを作成する
-- プロジェクト作成 API を実装する
-- プロジェクト一覧 API を実装する
-- プロジェクト詳細 API を実装する
-- プロジェクト更新 API を実装する
-- プロジェクト削除 API を実装する
-- `set_project` を実装する
-
-重視する点:
-
-- Project は Team に必ず紐づける
-- Project は所属チームからスコープして取得する
-- created_by はログインユーザーを設定する
-
-テスト:
-
-- 所属チームにプロジェクトを作成できる
-- 所属チームのプロジェクト一覧を取得できる
-- 他チームのプロジェクトを取得できない
-- 所属チームのプロジェクトを更新できる
-- 所属チームのプロジェクトを削除できる
-- name なしでは作成できない
+- Project モデル
+- projects テーブル
+- `GET /api/v1/teams/:team_id/projects`
+- `POST /api/v1/teams/:team_id/projects`
+- `GET /api/v1/projects/:id`
+- `PATCH /api/v1/projects/:id`
+- `DELETE /api/v1/projects/:id`
+- Project を所属 Team 経由で取得する認可
 
 ## フェーズ 5: タスク（完了）
 
 目的: タスクの作成、一覧、詳細、編集、削除、担当者、ステータス、優先度、期限を実装する。
 
-主な作業:
+完了済み:
 
-- Task モデルを作成する
-- tasks テーブルを作成する
-- タスク作成 API を実装する
-- タスク一覧 API を実装する
-- タスク詳細 API を実装する
-- タスク編集 API を実装する
-- タスク削除 API を実装する
-- 担当者設定を実装する
-- ステータス管理を実装する
-- 優先度設定を実装する
-- 期限設定を実装する
-- `set_task` を実装する
-
-重視する点:
-
-- Task は Project に必ず紐づける
-- Task は Team と Project を確認してから取得する
-- assignee は同じチームのメンバーのみ許可する
-- status と priority は定義済みの値のみ許可する
-- status の default は todo、priority の default は medium にする
-- Strong Parameters で更新可能属性を制限する
-- タスク削除時は `dependent: :destroy` により紐づくコメントも削除する
-
-テスト:
-
-- タスクを作成できる
-- タスク一覧を取得できる
-- タスク詳細を取得できる
-- タスクを編集できる
-- タスクを削除できる
-- 他チームのタスクを取得できない
-- 他チームのユーザーを担当者に設定できない
-- 不正な status を設定できない
-- 不正な priority を設定できない
-- タスク削除時に紐づくコメントも削除される
+- Task モデル
+- tasks テーブル
+- `GET /api/v1/projects/:project_id/tasks`
+- `POST /api/v1/projects/:project_id/tasks`
+- `GET /api/v1/tasks/:id`
+- `PATCH /api/v1/tasks/:id`
+- `DELETE /api/v1/tasks/:id`
+- 担当者設定
+- status / priority / due_on 管理
+- 同じチームのユーザーのみ assignee に設定できる制御
+- Task 削除時の Comment 削除
 
 ## フェーズ 6: コメント（完了）
 
 目的: タスクへのコメント作成、コメント一覧を実装する。
 
-主な作業:
+完了済み:
 
-- Comment モデルを作成する
-- comments テーブルを作成する
-- コメント作成 API を実装する
-- コメント一覧 API を実装する
+- Comment モデル
+- comments テーブル
+- `GET /api/v1/tasks/:task_id/comments`
+- `POST /api/v1/tasks/:task_id/comments`
+- Comment の user を `current_user` で設定
+- 他チーム Task へのコメント作成・参照防止
 
-重視する点:
-
-- Comment は Task に必ず紐づける
-- Comment の user はログインユーザーを設定する
-- コメント対象タスクは所属チームからスコープして取得する
-
-テスト:
-
-- コメントを作成できる
-- コメント一覧を取得できる
-- 他チームのタスクにコメントできない
-- content なしではコメントできない
-
-## フェーズ 7: カンバン表示と自分の担当タスク（完了）
+## フェーズ 7: カンバン表示と自分の担当タスク API（完了）
 
 目的: MVP のタスク閲覧 API を完成させる。
 
-主な作業:
+完了済み:
 
-- カンバン表示 API を実装する
-- 自分の担当タスク一覧 API を実装する
-- 自分の担当タスク一覧 API の絞り込みを整備する
+- `GET /api/v1/projects/:project_id/kanban`
+- `GET /api/v1/my/tasks`
+- status / priority / due_on_from / due_on_to による My Tasks 絞り込み
+- My Tasks で Project / Team / created_by / assignee を返すレスポンス
+- 所属チーム内の担当タスクだけを返す制御
 
-重視する点:
-
-- カンバン API は status ごとにタスクをグルーピングする
-- 自分の担当タスクは所属チーム内のデータだけを返す
-- 絞り込み条件のパラメータを Strong Parameters または明示的な許可リストで扱う
-- 通常の Task 一覧 API では MVP 時点で絞り込みは未対応とする
-
-テスト:
-
-- カンバン形式でタスクを取得できる
-- 自分に割り当てられたタスクのみ取得できる
-- 他チームの担当タスクは含まれない
-- status、priority、due_on_from、due_on_to で絞り込める
-
-## フェーズ 8: 品質確認（完了）
+## フェーズ 8: Backend 品質確認（完了）
 
 目的: MVP の安全性と保守性を確認する。
 
-主な作業:
+完了済み:
 
-- RSpec を全件実行する
-- RuboCop を実行する
-- Brakeman を実行する
-- 認可漏れがないか確認する
-- 不要な public メソッドや重複処理を整理する
-- コントローラが肥大化している場合はサービス層や private メソッドへ整理する
+- RSpec 実行
+- RuboCop 実行
+- Brakeman 実行
+- 認証、認可、バリデーション、他チームデータ分離のテスト整備
 
-完了条件:
+Backend 修正後に確認するコマンド:
 
-- RSpec が通る
-- RuboCop が通る
-- Brakeman で重大な警告がない
-- 他チームデータへのアクセス禁止がテストで保証されている
-- README と設計ドキュメントが実装内容と一致している
+```powershell
+cd D:/RubyProjects/teamtaskapp/backend
+bundle exec rspec
+bundle exec rubocop
+bundle exec brakeman
+```
 
-## フェーズ 9: UI 設計とフロントエンド準備
+## フェーズ 9: フロントエンド基盤（完了）
 
-目的: バックエンド MVP 完成後に、UI とフロントエンドの設計へ進む。
+目的: React SPA の土台を作る。
 
-主な作業:
+完了済み:
 
-- 必要画面を整理する
-- API レスポンスが画面要件を満たすか確認する
-- Bearer Token の保存場所と認証状態の扱いを設計する
-- カンバン表示 UI を設計する
-- フロントエンド技術選定を行う
+- Vite + React + TypeScript
+- Tailwind CSS
+- React Router
+- Axios API client
+- JWT の Authorization ヘッダー付与
+- 401 時の認証状態クリア
+- AuthContext
+- ProtectedRoute
+- AppLayout
+- ログイン、ユーザー登録、ログアウト
 
-備考:
+## フェーズ 10: フロントエンド主要画面（完了）
 
-- バックエンド MVP の主要機能は実装済みのため、次に着手するフェーズとする
-- React SPA として実装し、Rails API から JSON を取得する
+目的: MVP の主要 API を画面から利用できるようにする。
+
+完了済み:
+
+- チーム一覧
+- チーム作成
+- チーム詳細
+- メンバー一覧
+- プロジェクト一覧
+- プロジェクト作成
+- プロジェクト詳細
+- タスク作成
+- カンバン表示
+- TaskCard クリックによるタスク詳細表示
+- タスク編集
+- status / priority / title / description / due_on / assignee_id 更新
+- タスク更新後のカンバン差し替え
+- status 変更時のカラム移動
+- コメント一覧
+- コメント作成
+- My Tasks 一覧
+- My Tasks の status / priority / due_on_from / due_on_to 絞り込み
+- ローディング、エラー、空状態、送信中状態
+- Task 詳細取得、Comment 取得、My Tasks 取得の非同期競合対策
+- ProjectDetailPage のコンポーネント分割
+
+Frontend 修正後に確認するコマンド:
+
+```powershell
+cd D:/RubyProjects/teamtaskapp/frontend
+npm.cmd run build
+npm.cmd run lint
+```
+
+## フェーズ 11: ドキュメント更新・仕上げ（完了）
+
+目的: README と docs を現在の実装状態に合わせる。
+
+完了済み:
+
+- README の古いフロントエンド未着手前提の記述を削除
+- 実装済み機能を Backend / Frontend に分けて整理
+- セットアップ手順に backend / frontend の起動方法を記載
+- 確認コマンドを backend / frontend に分けて記載
+- docs/implementation_plan.md の進捗を現在化
+- docs/frontend_design.md に実装済み項目と後回し項目を反映
+
+## 後回しにする項目
+
+- 本格的なダッシュボード
+- チーム更新、削除 UI
+- チームメンバー追加、権限変更、削除 UI
+- プロジェクト更新、削除 UI
+- タスク削除 UI
+- コメント編集、削除
+- カンバンのドラッグアンドドロップ
+- 通知
+- 横断検索
+- アクティビティ履歴
+- ファイル添付
+- AI 機能
 
 ## 実装時の共通チェックリスト
 
@@ -330,8 +247,10 @@ ruby bin\rails db:create
 - DB に NOT NULL、default、外部キー、一意制約、必要に応じた CHECK 制約がある
 - 正常系と異常系の RSpec がある
 - 他チームのデータにアクセスできないことをテストしている
-- RuboCop を実行している
-- Brakeman を実行している
+- user_id、team_id、created_by_id をフロントエンドから信用していない
+- フロントエンドの型が API レスポンスに合っている
+- フロントエンドは build / lint を通す
+- mock データや画像内のサンプル文字列を本番コンポーネントへ直書きしていない
 
 ## MVP 完了条件
 
@@ -344,6 +263,8 @@ ruby bin\rails db:create
 - コメント API が完成している
 - カンバン API が完成している
 - 自分の担当タスク API が完成している
+- React SPA から認証、Team、Project、Task、Comment、My Tasks の主要操作ができる
 - 主要な認証・認可・バリデーション・DB 制約がテストされている
-- RuboCop と Brakeman を実行できる
-- UI とフロントエンドは未着手でも、バックエンド API として利用できる状態になっている
+- Backend の RSpec / RuboCop / Brakeman を実行できる
+- Frontend の build / lint を実行できる
+- README と docs が実装状態と大きくズレていない

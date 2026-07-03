@@ -2,11 +2,11 @@
 
 ## 基本方針
 
-MVP ではバックエンド API を優先して実装します。UI とフロントエンドは、主要 API が完成してから設計します。
+MVP では Rails API を中心に、認証、Team、Project、Task、Comment、Kanban、My Tasks の入出力形式をそろえます。現在の React SPA は、この API 設計に沿ってデータ取得と更新を行います。
 
 API は Rails での実装を想定し、認証、認可、Strong Parameters、before_action による整理を重視します。
 
-Rails は API モードで構築し、DB は PostgreSQL を使用します。フロントエンドはバックエンド MVP 完成後に React SPA として実装します。
+Rails は API モードで構築し、DB は PostgreSQL を使用します。フロントエンドは React + TypeScript + Vite の SPA として実装し、Axios から `/api/v1` 配下の JSON API を呼び出します。
 
 ## 共通仕様
 
