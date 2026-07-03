@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { createTaskComment, fetchTaskComments } from '../api/comments'
 import { fetchProject, fetchProjectKanban } from '../api/projects'
 import { fetchTeamMembers } from '../api/teamMembers'
 import { createProjectTask, fetchTask, updateTask } from '../api/tasks'
+import type { Comment } from '../types/comment'
 import type { Project, ProjectStatus } from '../types/project'
 import type { TeamMember } from '../types/team'
 import type {
@@ -117,6 +119,16 @@ function formatDate(value: string | null) {
   if (!year || !month || !day) return value
 
   return `${year}/${month}/${day}`
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
 }
 
 function replaceTaskInKanban(
@@ -236,6 +248,13 @@ export function ProjectDetailPage() {
     useState<TaskPriority>('medium')
   const [editTaskDueOn, setEditTaskDueOn] = useState('')
   const [editTaskAssigneeId, setEditTaskAssigneeId] = useState('')
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentContent, setCommentContent] = useState('')
+  const [isCommentsLoading, setIsCommentsLoading] = useState(false)
+  const [commentsErrorMessage, setCommentsErrorMessage] = useState('')
+  const [commentSubmitErrorMessage, setCommentSubmitErrorMessage] =
+    useState('')
+  const [isCommentSubmitting, setIsCommentSubmitting] = useState(false)
   const selectedTaskIdRef = useRef<number | null>(null)
 
   const setEditFormValues = useCallback((task: Task) => {
@@ -274,6 +293,10 @@ export function ProjectDetailPage() {
       setSelectedTask(null)
       setTaskDetailErrorMessage('')
       setTaskUpdateMessage('')
+      setComments([])
+      setCommentContent('')
+      setCommentsErrorMessage('')
+      setCommentSubmitErrorMessage('')
     } catch (error) {
       setErrorMessage(
         getApiErrorMessage(error, 'プロジェクト詳細を取得できませんでした。'),
@@ -356,6 +379,12 @@ export function ProjectDetailPage() {
     setIsTaskDetailLoading(true)
     setTaskDetailErrorMessage('')
     setTaskUpdateMessage('')
+    setComments([])
+    setCommentContent('')
+    setCommentsErrorMessage('')
+    setCommentSubmitErrorMessage('')
+    setIsCommentsLoading(true)
+    setIsCommentSubmitting(false)
 
     try {
       const fetchedTask = await fetchTask(String(taskId))
@@ -370,9 +399,29 @@ export function ProjectDetailPage() {
       setTaskDetailErrorMessage(
         getApiErrorMessage(error, 'タスク詳細を取得できませんでした。'),
       )
+      setIsCommentsLoading(false)
+      return
     } finally {
       if (selectedTaskIdRef.current === taskId) {
         setIsTaskDetailLoading(false)
+      }
+    }
+
+    try {
+      const fetchedComments = await fetchTaskComments(String(taskId))
+
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setComments(fetchedComments)
+    } catch (error) {
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setCommentsErrorMessage(
+        getApiErrorMessage(error, 'コメント一覧を取得できませんでした。'),
+      )
+    } finally {
+      if (selectedTaskIdRef.current === taskId) {
+        setIsCommentsLoading(false)
       }
     }
   }
@@ -433,6 +482,56 @@ export function ProjectDetailPage() {
       )
     } finally {
       setIsTaskUpdating(false)
+    }
+  }
+
+  const handleCommentSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isCommentSubmitting) return
+
+    if (!selectedTask) {
+      setCommentSubmitErrorMessage('コメントするタスクを選択してください。')
+      return
+    }
+
+    if (selectedTaskIdRef.current !== selectedTask.id) {
+      setCommentSubmitErrorMessage('選択中のタスク詳細を読み込んでいます。')
+      return
+    }
+
+    const trimmedContent = commentContent.trim()
+
+    if (!trimmedContent) {
+      setCommentSubmitErrorMessage('コメント本文を入力してください。')
+      return
+    }
+
+    const taskId = selectedTask.id
+
+    setIsCommentSubmitting(true)
+    setCommentSubmitErrorMessage('')
+
+    try {
+      const createdComment = await createTaskComment(String(taskId), {
+        content: trimmedContent,
+      })
+
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setCommentsErrorMessage('')
+      setComments((currentComments) => [...currentComments, createdComment])
+      setCommentContent('')
+    } catch (error) {
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setCommentSubmitErrorMessage(
+        getApiErrorMessage(error, 'コメントを投稿できませんでした。'),
+      )
+    } finally {
+      if (selectedTaskIdRef.current === taskId) {
+        setIsCommentSubmitting(false)
+      }
     }
   }
 
@@ -662,150 +761,247 @@ export function ProjectDetailPage() {
             ) : null}
 
             {selectedTask && !isTaskDetailLoading ? (
-              <form
-                className="mt-5 grid gap-4 lg:grid-cols-2"
-                onSubmit={(event) => {
-                  void handleTaskUpdate(event)
-                }}
-              >
-                <label className="block lg:col-span-2">
-                  <span className="text-sm font-semibold text-slate-700">
-                    title
-                  </span>
-                  <input
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
-                    disabled={isTaskUpdating}
-                    onChange={(event) => {
-                      setEditTaskTitle(event.target.value)
-                    }}
-                    type="text"
-                    value={editTaskTitle}
-                  />
-                </label>
+              <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                <form
+                  className="grid gap-4 lg:grid-cols-2"
+                  onSubmit={(event) => {
+                    void handleTaskUpdate(event)
+                  }}
+                >
+                  <label className="block lg:col-span-2">
+                    <span className="text-sm font-semibold text-slate-700">
+                      title
+                    </span>
+                    <input
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                      disabled={isTaskUpdating}
+                      onChange={(event) => {
+                        setEditTaskTitle(event.target.value)
+                      }}
+                      type="text"
+                      value={editTaskTitle}
+                    />
+                  </label>
 
-                <label className="block lg:col-span-2">
-                  <span className="text-sm font-semibold text-slate-700">
-                    description
-                  </span>
-                  <textarea
-                    className="mt-2 min-h-28 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
-                    disabled={isTaskUpdating}
-                    onChange={(event) => {
-                      setEditTaskDescription(event.target.value)
-                    }}
-                    value={editTaskDescription}
-                  />
-                </label>
+                  <label className="block lg:col-span-2">
+                    <span className="text-sm font-semibold text-slate-700">
+                      description
+                    </span>
+                    <textarea
+                      className="mt-2 min-h-28 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                      disabled={isTaskUpdating}
+                      onChange={(event) => {
+                        setEditTaskDescription(event.target.value)
+                      }}
+                      value={editTaskDescription}
+                    />
+                  </label>
 
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    status
-                  </span>
-                  <select
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
-                    disabled={isTaskUpdating}
-                    onChange={(event) => {
-                      setEditTaskStatus(event.target.value as TaskStatus)
-                    }}
-                    value={editTaskStatus}
-                  >
-                    {kanbanColumns.map((column) => (
-                      <option key={column.status} value={column.status}>
-                        {column.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">
+                      status
+                    </span>
+                    <select
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                      disabled={isTaskUpdating}
+                      onChange={(event) => {
+                        setEditTaskStatus(event.target.value as TaskStatus)
+                      }}
+                      value={editTaskStatus}
+                    >
+                      {kanbanColumns.map((column) => (
+                        <option key={column.status} value={column.status}>
+                          {column.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    priority
-                  </span>
-                  <select
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
-                    disabled={isTaskUpdating}
-                    onChange={(event) => {
-                      setEditTaskPriority(event.target.value as TaskPriority)
-                    }}
-                    value={editTaskPriority}
-                  >
-                    {taskPriorityOptions.map((option) => (
-                      <option key={option.priority} value={option.priority}>
-                        {option.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">
+                      priority
+                    </span>
+                    <select
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                      disabled={isTaskUpdating}
+                      onChange={(event) => {
+                        setEditTaskPriority(event.target.value as TaskPriority)
+                      }}
+                      value={editTaskPriority}
+                    >
+                      {taskPriorityOptions.map((option) => (
+                        <option key={option.priority} value={option.priority}>
+                          {option.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    due_on
-                  </span>
-                  <input
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
-                    disabled={isTaskUpdating}
-                    onChange={(event) => {
-                      setEditTaskDueOn(event.target.value)
-                    }}
-                    type="date"
-                    value={editTaskDueOn}
-                  />
-                </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">
+                      due_on
+                    </span>
+                    <input
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                      disabled={isTaskUpdating}
+                      onChange={(event) => {
+                        setEditTaskDueOn(event.target.value)
+                      }}
+                      type="date"
+                      value={editTaskDueOn}
+                    />
+                  </label>
 
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    assignee_id
-                  </span>
-                  <select
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
-                    disabled={isTaskUpdating}
-                    onChange={(event) => {
-                      setEditTaskAssigneeId(event.target.value)
-                    }}
-                    value={editTaskAssigneeId}
-                  >
-                    <option value="">未設定</option>
-                    {teamMembers.map((member) => (
-                      <option key={member.id} value={member.user.id}>
-                        {member.user.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">
+                      assignee_id
+                    </span>
+                    <select
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                      disabled={isTaskUpdating}
+                      onChange={(event) => {
+                        setEditTaskAssigneeId(event.target.value)
+                      }}
+                      value={editTaskAssigneeId}
+                    >
+                      <option value="">未設定</option>
+                      {teamMembers.map((member) => (
+                        <option key={member.id} value={member.user.id}>
+                          {member.user.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <div className="lg:col-span-2">
-                  <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                  <div className="lg:col-span-2">
+                    <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                      <div>
+                        <dt className="text-xs font-semibold text-slate-500">
+                          作成者
+                        </dt>
+                        <dd className="mt-1 font-medium text-slate-800">
+                          {selectedTask.created_by.name}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-semibold text-slate-500">
+                          最終更新
+                        </dt>
+                        <dd className="mt-1 font-medium text-slate-800">
+                          {formatDateTime(selectedTask.updated_at)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div className="lg:col-span-2">
+                    <button
+                      className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                      disabled={isTaskUpdating}
+                      type="submit"
+                    >
+                      {isTaskUpdating ? '更新しています...' : 'タスクを更新'}
+                    </button>
+                  </div>
+                </form>
+
+                <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <dt className="text-xs font-semibold text-slate-500">
-                        作成者
-                      </dt>
-                      <dd className="mt-1 font-medium text-slate-800">
-                        {selectedTask.created_by.name}
-                      </dd>
+                      <h4 className="text-sm font-semibold text-slate-950">
+                        コメント
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-500">
+                        選択中のタスクへのコメントです。
+                      </p>
                     </div>
-                    <div>
-                      <dt className="text-xs font-semibold text-slate-500">
-                        最終更新
-                      </dt>
-                      <dd className="mt-1 font-medium text-slate-800">
-                        {new Date(selectedTask.updated_at).toLocaleString(
-                          'ja-JP',
-                        )}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {comments.length}件
+                    </span>
+                  </div>
 
-                <div className="lg:col-span-2">
-                  <button
-                    className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
-                    disabled={isTaskUpdating}
-                    type="submit"
+                  {isCommentsLoading ? (
+                    <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+                      コメントを読み込んでいます。
+                    </div>
+                  ) : null}
+
+                  {commentsErrorMessage ? (
+                    <div className="mt-4 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                      {commentsErrorMessage}
+                    </div>
+                  ) : null}
+
+                  {!isCommentsLoading &&
+                  !commentsErrorMessage &&
+                  comments.length === 0 ? (
+                    <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-500">
+                      コメントはまだありません。
+                    </div>
+                  ) : null}
+
+                  {!isCommentsLoading &&
+                  !commentsErrorMessage &&
+                  comments.length > 0 ? (
+                    <ul className="mt-4 space-y-3">
+                      {comments.map((comment) => (
+                        <li
+                          className="rounded-lg border border-slate-200 bg-white p-3"
+                          key={comment.id}
+                        >
+                          <p className="whitespace-pre-line break-words text-sm leading-6 text-slate-800">
+                            {comment.content}
+                          </p>
+                          <div className="mt-3 flex flex-col gap-1 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="font-medium text-slate-700">
+                              {comment.user.name}
+                            </span>
+                            <time dateTime={comment.created_at}>
+                              {formatDateTime(comment.created_at)}
+                            </time>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <form
+                    className="mt-4 border-t border-slate-200 pt-4"
+                    onSubmit={(event) => {
+                      void handleCommentSubmit(event)
+                    }}
                   >
-                    {isTaskUpdating ? '更新しています...' : 'タスクを更新'}
-                  </button>
-                </div>
-              </form>
+                    <label className="block">
+                      <span className="text-sm font-semibold text-slate-700">
+                        コメント本文
+                      </span>
+                      <textarea
+                        className="mt-2 min-h-24 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-100"
+                        disabled={isCommentSubmitting}
+                        onChange={(event) => {
+                          setCommentContent(event.target.value)
+                        }}
+                        placeholder="コメントを入力"
+                        value={commentContent}
+                      />
+                    </label>
+
+                    {commentSubmitErrorMessage ? (
+                      <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                        {commentSubmitErrorMessage}
+                      </div>
+                    ) : null}
+
+                    <button
+                      className="mt-3 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                      disabled={isCommentSubmitting}
+                      type="submit"
+                    >
+                      {isCommentSubmitting ? '投稿しています...' : 'コメントを投稿'}
+                    </button>
+                  </form>
+                </aside>
+              </div>
             ) : null}
           </section>
 
