@@ -1,6 +1,8 @@
 import { apiClient } from './client'
 import type {
   CreateTaskInput,
+  MyTasksFilterParams,
+  MyTasksResponse,
   TaskResponse,
   UpdateTaskInput,
 } from '../types/task'
@@ -31,4 +33,17 @@ export async function updateTask(taskId: string, input: UpdateTaskInput) {
   })
 
   return response.data.task
+}
+
+export async function fetchMyTasks(filters: MyTasksFilterParams = {}) {
+  const response = await apiClient.get<MyTasksResponse>('/my/tasks', {
+    params: {
+      status: filters.status || undefined,
+      priority: filters.priority || undefined,
+      due_on_from: filters.due_on_from || undefined,
+      due_on_to: filters.due_on_to || undefined,
+    },
+  })
+
+  return response.data.tasks
 }

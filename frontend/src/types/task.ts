@@ -47,6 +47,17 @@ export type MyTask = Task & {
   }
 }
 
+export type MyTasksResponse = {
+  tasks: MyTask[]
+}
+
+export type MyTasksFilterParams = {
+  status?: TaskStatus | ''
+  priority?: TaskPriority | ''
+  due_on_from?: string
+  due_on_to?: string
+}
+
 export type KanbanResponse = {
   project: {
     id: number
