@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createTeamProject, fetchTeamProjects } from '../api/projects'
 import { fetchTeam } from '../api/teams'
-import { fetchTeamMembers } from '../api/teamMembers'
+import { createTeamMember, fetchTeamMembers } from '../api/teamMembers'
 import type { Project, ProjectStatus } from '../types/project'
 import type { Team, TeamMember, TeamMemberRole } from '../types/team'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -79,6 +79,12 @@ export function TeamDetailPage() {
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>('active')
   const [projectErrorMessage, setProjectErrorMessage] = useState('')
   const [isProjectSubmitting, setIsProjectSubmitting] = useState(false)
+  const [memberEmail, setMemberEmail] = useState('')
+  const [memberRole, setMemberRole] =
+    useState<Exclude<TeamMemberRole, 'owner'>>('member')
+  const [memberErrorMessage, setMemberErrorMessage] = useState('')
+  const [memberSuccessMessage, setMemberSuccessMessage] = useState('')
+  const [isMemberSubmitting, setIsMemberSubmitting] = useState(false)
 
   const loadTeamDetail = useCallback(async () => {
     if (!teamId) {
@@ -150,6 +156,46 @@ export function TeamDetailPage() {
       )
     } finally {
       setIsProjectSubmitting(false)
+    }
+  }
+
+  const handleMemberSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isMemberSubmitting) return
+
+    if (!teamId) {
+      setMemberErrorMessage('チームIDが見つかりません。')
+      return
+    }
+
+    const trimmedEmail = memberEmail.trim()
+
+    if (!trimmedEmail) {
+      setMemberErrorMessage('メールアドレスを入力してください。')
+      return
+    }
+
+    setIsMemberSubmitting(true)
+    setMemberErrorMessage('')
+    setMemberSuccessMessage('')
+
+    try {
+      const createdMember = await createTeamMember(teamId, {
+        email: trimmedEmail,
+        role: memberRole,
+      })
+
+      setMembers((currentMembers) => [createdMember, ...currentMembers])
+      setMemberEmail('')
+      setMemberRole('member')
+      setMemberSuccessMessage('メンバーを追加しました。')
+    } catch (error) {
+      setMemberErrorMessage(
+        getApiErrorMessage(error, 'メンバーを追加できませんでした。'),
+      )
+    } finally {
+      setIsMemberSubmitting(false)
     }
   }
 
@@ -343,50 +389,142 @@ export function TeamDetailPage() {
             </form>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-950">
-                  メンバー一覧
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  このチームに所属しているメンバーを表示します。
-                </p>
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-950">
+                    メンバー一覧
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    このチームに所属しているメンバーを表示します。
+                  </p>
+                </div>
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
+                  {members.length}人
+                </div>
               </div>
-              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
-                {members.length}人
-              </div>
+
+              {members.length === 0 ? (
+                <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                  メンバーがまだ登録されていません。
+                </div>
+              ) : (
+                <div className="mt-6 overflow-hidden rounded-lg border border-slate-200">
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
+                    <span>名前</span>
+                    <span>メールアドレス</span>
+                    <span>role</span>
+                  </div>
+                  <ul className="divide-y divide-slate-100">
+                    {members.map((member) => (
+                      <li
+                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-4 px-4 py-4"
+                        key={member.id}
+                      >
+                        <span className="min-w-0 truncate text-sm font-semibold text-slate-900">
+                          {member.user.name}
+                        </span>
+                        <span className="min-w-0 truncate text-sm text-slate-600">
+                          {member.user.email}
+                        </span>
+                        <RoleBadge role={member.role} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
-            {members.length === 0 ? (
-              <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
-                メンバーがまだ登録されていません。
+            <form
+              className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+              onSubmit={(event) => {
+                void handleMemberSubmit(event)
+              }}
+            >
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">
+                  メンバー追加
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  登録済みユーザーをメールアドレスでチームに追加します。
+                </p>
               </div>
-            ) : (
-              <div className="mt-6 overflow-hidden rounded-lg border border-slate-200">
-                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
-                  <span>名前</span>
-                  <span>メールアドレス</span>
-                  <span>role</span>
+
+              {team.current_user_role === 'member' ? (
+                <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+                  メンバー追加は owner または admin が利用できます。
                 </div>
-                <ul className="divide-y divide-slate-100">
-                  {members.map((member) => (
-                    <li
-                      className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-4 px-4 py-4"
-                      key={member.id}
-                    >
-                      <span className="min-w-0 truncate text-sm font-semibold text-slate-900">
-                        {member.user.name}
-                      </span>
-                      <span className="min-w-0 truncate text-sm text-slate-600">
-                        {member.user.email}
-                      </span>
-                      <RoleBadge role={member.role} />
-                    </li>
-                  ))}
-                </ul>
+              ) : null}
+
+              {memberErrorMessage ? (
+                <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                  {memberErrorMessage}
+                </div>
+              ) : null}
+
+              {memberSuccessMessage ? (
+                <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">
+                  {memberSuccessMessage}
+                </div>
+              ) : null}
+
+              <div className="mt-5 space-y-4">
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    メールアドレス
+                  </span>
+                  <input
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={
+                      isMemberSubmitting || team.current_user_role === 'member'
+                    }
+                    onChange={(event) => {
+                      setMemberEmail(event.target.value)
+                    }}
+                    placeholder="user@example.com"
+                    type="email"
+                    value={memberEmail}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    role
+                  </span>
+                  <select
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50"
+                    disabled={
+                      isMemberSubmitting || team.current_user_role === 'member'
+                    }
+                    onChange={(event) => {
+                      setMemberRole(
+                        event.target.value as Exclude<
+                          TeamMemberRole,
+                          'owner'
+                        >,
+                      )
+                    }}
+                    value={memberRole}
+                  >
+                    <option value="member">メンバー</option>
+                    {team.current_user_role === 'owner' ? (
+                      <option value="admin">管理者</option>
+                    ) : null}
+                  </select>
+                </label>
               </div>
-            )}
+
+              <button
+                className="mt-5 w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                disabled={
+                  isMemberSubmitting || team.current_user_role === 'member'
+                }
+                type="submit"
+              >
+                {isMemberSubmitting ? '追加しています...' : 'メンバーを追加'}
+              </button>
+            </form>
           </section>
         </>
       ) : null}

@@ -24,7 +24,7 @@ Rails.application.routes.draw do
         resources :comments, only: %i[index create]
       end
 
-      namespace(:my) { resources :tasks, only: %i[index] }
+      namespace(:my) { resources :tasks, :created_tasks, only: %i[index] }
     end
   end
 

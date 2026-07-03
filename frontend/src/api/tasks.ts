@@ -47,3 +47,16 @@ export async function fetchMyTasks(filters: MyTasksFilterParams = {}) {
 
   return response.data.tasks
 }
+
+export async function fetchMyCreatedTasks(filters: MyTasksFilterParams = {}) {
+  const response = await apiClient.get<MyTasksResponse>('/my/created_tasks', {
+    params: {
+      status: filters.status || undefined,
+      priority: filters.priority || undefined,
+      due_on_from: filters.due_on_from || undefined,
+      due_on_to: filters.due_on_to || undefined,
+    },
+  })
+
+  return response.data.tasks
+}

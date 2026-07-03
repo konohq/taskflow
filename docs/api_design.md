@@ -2,7 +2,7 @@
 
 ## 基本方針
 
-MVP では Rails API を中心に、認証、Team、Project、Task、Comment、Kanban、My Tasks の入出力形式をそろえます。現在の React SPA は、この API 設計に沿ってデータ取得と更新を行います。
+MVP では Rails API を中心に、認証、Team、Project、Task、Comment、Kanban、自分のタスク一覧 API の入出力形式をそろえます。現在の React SPA は、この API 設計に沿ってデータ取得と更新を行います。
 
 API は Rails での実装を想定し、認証、認可、Strong Parameters、before_action による整理を重視します。
 
@@ -767,6 +767,8 @@ GET /api/v1/projects/:project_id/kanban
 GET /api/v1/my/tasks
 ```
 
+`assignee_id = current_user.id` のタスクを返します。フロントエンドの「作成したタスク」画面では使用せず、担当タスク用 API として残します。
+
 クエリパラメータ:
 
 | パラメータ | 説明 |
@@ -813,6 +815,62 @@ GET /api/v1/my/tasks
 
 My Tasks API の `created_by` / `assignee` も `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
 
+## 自分が作成したタスク API
+
+### 自分が作成したタスク一覧
+
+```text
+GET /api/v1/my/created_tasks
+```
+
+`created_by_id = current_user.id` のタスクを返します。所属チーム内のタスクだけを対象にし、フロントエンドから `user_id` や `created_by_id` は送信しません。
+
+クエリパラメータ:
+
+| パラメータ | 説明 |
+| --- | --- |
+| status | ステータスで絞り込み |
+| priority | 優先度で絞り込み |
+| due_on_from | 指定日以降の期限で絞り込み |
+| due_on_to | 指定日以前の期限で絞り込み |
+
+レスポンス:
+
+```json
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Create authentication API",
+      "description": "Implement signup, login, logout, and me endpoint",
+      "status": "todo",
+      "priority": "high",
+      "due_on": "2026-07-15",
+      "created_at": "2026-07-01T00:00:00Z",
+      "updated_at": "2026-07-01T00:00:00Z",
+      "project": {
+        "id": 1,
+        "name": "MVP Backend"
+      },
+      "team": {
+        "id": 1,
+        "name": "Product Team"
+      },
+      "created_by": {
+        "id": 1,
+        "name": "Yamada Taro"
+      },
+      "assignee": {
+        "id": 2,
+        "name": "Sato Hanako"
+      }
+    }
+  ]
+}
+```
+
+Created Tasks API の `created_by` / `assignee` も `id` と `name` のみに限定し、email、password、encrypted_password、jti などの不要なユーザー情報は返しません。
+
 ## 認可テスト観点
 
 RSpec の request spec では、最低限以下を検証します。
@@ -857,6 +915,7 @@ namespace :api do
 
     namespace :my do
       resources :tasks, only: %i[index]
+      resources :created_tasks, only: %i[index]
     end
   end
 end

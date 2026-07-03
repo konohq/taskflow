@@ -9,10 +9,11 @@ TaskFlow AI は、Rails API と React SPA で段階的に実装します。
 ## 現在の進捗概要
 
 - Backend MVP の主要 API は実装済み
-- 認証、Team、TeamMember、Project、Task、Comment、Kanban、My Tasks API は実装済み
+- 認証、Team、TeamMember、Project、Task、Comment、Kanban、My Tasks API、Created Tasks API は実装済み
 - Backend の RSpec / RuboCop / Brakeman は実行可能な状態
 - Frontend MVP の主要画面は実装済み
-- ログイン、ユーザー登録、Team、Project、Task、Comment、My Tasks の画面は実装済み
+- ログイン、ユーザー登録、Team、Project、Task、Comment、作成したタスクの画面は実装済み
+- ダッシュボードは所属チーム数、プロジェクト数、作成タスク数、主要導線を表示済み
 - ProjectDetailPage は Kanban / Task / Comment の機能コンポーネントへ分割済み
 - README と docs は現在の実装状況に合わせて更新済み
 
@@ -123,7 +124,7 @@ TaskFlow AI は、Rails API と React SPA で段階的に実装します。
 - Comment の user を `current_user` で設定
 - 他チーム Task へのコメント作成・参照防止
 
-## フェーズ 7: カンバン表示と自分の担当タスク API（完了）
+## フェーズ 7: カンバン表示と自分のタスク API（完了）
 
 目的: MVP のタスク閲覧 API を完成させる。
 
@@ -131,9 +132,11 @@ TaskFlow AI は、Rails API と React SPA で段階的に実装します。
 
 - `GET /api/v1/projects/:project_id/kanban`
 - `GET /api/v1/my/tasks`
-- status / priority / due_on_from / due_on_to による My Tasks 絞り込み
-- My Tasks で Project / Team / created_by / assignee を返すレスポンス
+- `GET /api/v1/my/created_tasks`
+- status / priority / due_on_from / due_on_to による My Tasks / Created Tasks 絞り込み
+- My Tasks / Created Tasks で Project / Team / created_by / assignee を返すレスポンス
 - 所属チーム内の担当タスクだけを返す制御
+- 所属チーム内で自分が作成したタスクだけを返す制御
 
 ## フェーズ 8: Backend 品質確認（完了）
 
@@ -182,10 +185,12 @@ bundle exec brakeman
 - チーム作成
 - チーム詳細
 - メンバー一覧
+- メンバー追加
 - プロジェクト一覧
 - プロジェクト作成
 - プロジェクト詳細
 - タスク作成
+- カンバン列からのタスク作成
 - カンバン表示
 - TaskCard クリックによるタスク詳細表示
 - タスク編集
@@ -194,10 +199,10 @@ bundle exec brakeman
 - status 変更時のカラム移動
 - コメント一覧
 - コメント作成
-- My Tasks 一覧
-- My Tasks の status / priority / due_on_from / due_on_to 絞り込み
+- 作成したタスク一覧
+- 作成したタスクの status / priority / due_on_from / due_on_to 絞り込み
 - ローディング、エラー、空状態、送信中状態
-- Task 詳細取得、Comment 取得、My Tasks 取得の非同期競合対策
+- Task 詳細取得、Comment 取得、作成したタスク取得の非同期競合対策
 - ProjectDetailPage のコンポーネント分割
 
 Frontend 修正後に確認するコマンド:
@@ -223,9 +228,8 @@ npm.cmd run lint
 
 ## 後回しにする項目
 
-- 本格的なダッシュボード
 - チーム更新、削除 UI
-- チームメンバー追加、権限変更、削除 UI
+- チームメンバー権限変更、削除 UI
 - プロジェクト更新、削除 UI
 - タスク削除 UI
 - コメント編集、削除
@@ -263,7 +267,8 @@ npm.cmd run lint
 - コメント API が完成している
 - カンバン API が完成している
 - 自分の担当タスク API が完成している
-- React SPA から認証、Team、Project、Task、Comment、My Tasks の主要操作ができる
+- 自分が作成したタスク API が完成している
+- React SPA から認証、Team、Project、Task、Comment、作成したタスクの主要操作ができる
 - 主要な認証・認可・バリデーション・DB 制約がテストされている
 - Backend の RSpec / RuboCop / Brakeman を実行できる
 - Frontend の build / lint を実行できる

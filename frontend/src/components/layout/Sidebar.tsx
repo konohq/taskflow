@@ -15,25 +15,25 @@ type NavItem = {
 const navItems: NavItem[] = [
   {
     label: 'ダッシュボード',
-    description: '概要を確認',
+    description: '全体の状況',
     to: '/',
     match: (pathname) => pathname === '/',
   },
   {
     label: 'チーム',
-    description: '所属チーム',
+    description: 'チームとメンバー',
     to: '/teams',
     match: (pathname) => pathname === '/teams' || pathname.startsWith('/teams/'),
   },
   {
     label: 'プロジェクト',
-    description: 'チーム選択後に表示',
+    description: 'カンバンを開く',
     to: '/teams',
     match: (pathname) => pathname.startsWith('/projects/'),
   },
   {
-    label: 'マイタスク',
-    description: '自分の担当',
+    label: '作成タスク',
+    description: '自分が作成',
     to: '/my/tasks',
     match: (pathname) => pathname === '/my/tasks',
   },
@@ -68,16 +68,28 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           return (
             <NavLink
               className={[
-                'block rounded-lg border px-3 py-3 transition focus:outline-none focus:ring-4 focus:ring-indigo-100',
+                'relative block rounded-lg border px-4 py-3 transition focus:outline-none focus:ring-4 focus:ring-indigo-100',
                 isActive
-                  ? 'border-indigo-100 bg-indigo-50 text-indigo-700'
+                  ? 'border-indigo-100 bg-indigo-50 text-indigo-700 shadow-sm'
                   : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950',
               ].join(' ')}
               key={item.label}
               onClick={onClose}
               to={item.to}
             >
-              <span className="block text-sm font-semibold">{item.label}</span>
+              {isActive ? (
+                <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-indigo-600" />
+              ) : null}
+              <span className="flex items-center justify-between gap-3">
+                <span className="block text-sm font-semibold">
+                  {item.label}
+                </span>
+                {isActive ? (
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                    現在
+                  </span>
+                ) : null}
+              </span>
               <span className="mt-0.5 block text-xs text-slate-500">
                 {item.description}
               </span>

@@ -36,3 +36,12 @@ export type TeamMember = {
 export type TeamMembersResponse = {
   members: TeamMember[]
 }
+
+export type TeamMemberResponse = {
+  member: TeamMember
+}
+
+export type CreateTeamMemberInput = {
+  email: string
+  role: Exclude<TeamMemberRole, 'owner'>
+}

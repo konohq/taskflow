@@ -1,20 +1,22 @@
-import type { KanbanResponse } from '../../types/task'
+import type { KanbanResponse, TaskStatus } from '../../types/task'
 import { kanbanColumns } from '../tasks/taskDisplay'
 import { KanbanColumn } from './KanbanColumn'
 
 type KanbanBoardProps = {
   kanban: KanbanResponse
+  onTaskCreateClick: (status: TaskStatus) => void
   onTaskSelect: (taskId: number) => void
   selectedTaskId: number | null
 }
 
 export function KanbanBoard({
   kanban,
+  onTaskCreateClick,
   onTaskSelect,
   selectedTaskId,
 }: KanbanBoardProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-950">
@@ -40,7 +42,9 @@ export function KanbanBoard({
               accentClass={column.accentClass}
               isTaskSelected={(taskId) => selectedTaskId === taskId}
               key={column.status}
+              onTaskCreateClick={onTaskCreateClick}
               onTaskSelect={onTaskSelect}
+              status={column.status}
               tasks={kanban.columns[column.status]}
               title={column.title}
             />

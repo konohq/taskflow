@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchMyTasks } from '../api/tasks'
+import { fetchMyCreatedTasks } from '../api/tasks'
 import type {
   MyTask,
   MyTasksFilterParams,
@@ -202,7 +202,7 @@ export function MyTasksPage() {
     setErrorMessage('')
 
     try {
-      const fetchedTasks = await fetchMyTasks(targetFilters)
+      const fetchedTasks = await fetchMyCreatedTasks(targetFilters)
 
       if (myTasksRequestIdRef.current !== requestId) return
 
@@ -211,7 +211,7 @@ export function MyTasksPage() {
       if (myTasksRequestIdRef.current !== requestId) return
 
       setErrorMessage(
-        getApiErrorMessage(error, 'マイタスクを取得できませんでした。'),
+        getApiErrorMessage(error, '作成したタスクを取得できませんでした。'),
       )
     } finally {
       if (myTasksRequestIdRef.current === requestId) {
@@ -256,12 +256,12 @@ export function MyTasksPage() {
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-indigo-600">My Tasks</p>
+            <p className="text-sm font-medium text-indigo-600">Created Tasks</p>
             <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-              マイタスク
+              作成したタスク
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              自分が担当者になっているタスクを、ステータス・優先度・期限で絞り込んで確認できます。
+              自分が作成したタスクを、ステータス・優先度・期限で絞り込んで確認できます。
             </p>
           </div>
           <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
@@ -377,7 +377,7 @@ export function MyTasksPage() {
 
       {isLoading ? (
         <section className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-          マイタスクを読み込んでいます。
+          作成したタスクを読み込んでいます。
         </section>
       ) : null}
 
@@ -400,13 +400,13 @@ export function MyTasksPage() {
         <section className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
           <p className="text-sm font-semibold text-slate-700">
             {hasActiveFilters
-              ? '条件に一致するマイタスクはありません。'
-              : '担当中のタスクはまだありません。'}
+              ? '条件に一致する作成タスクはありません。'
+              : '作成したタスクはまだありません。'}
           </p>
           <p className="mt-1 text-sm text-slate-500">
             {hasActiveFilters
               ? 'フィルタ条件を変えるか、リセットして確認してください。'
-              : '担当者に設定されたタスクがここに表示されます。'}
+              : '自分が作成したタスクがここに表示されます。'}
           </p>
         </section>
       ) : null}

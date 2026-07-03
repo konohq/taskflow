@@ -100,6 +100,7 @@ export function ProjectDetailPage() {
   const [taskAssigneeId, setTaskAssigneeId] = useState('')
   const [taskErrorMessage, setTaskErrorMessage] = useState('')
   const [isTaskSubmitting, setIsTaskSubmitting] = useState(false)
+  const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isTaskDetailLoading, setIsTaskDetailLoading] = useState(false)
@@ -129,6 +130,16 @@ export function ProjectDetailPage() {
     setEditTaskPriority(task.priority)
     setEditTaskDueOn(task.due_on ?? '')
     setEditTaskAssigneeId(task.assignee ? String(task.assignee.id) : '')
+  }, [])
+
+  const resetTaskCreateForm = useCallback((status: TaskStatus) => {
+    setTaskTitle('')
+    setTaskDescription('')
+    setTaskStatus(status)
+    setTaskPriority('medium')
+    setTaskDueOn('')
+    setTaskAssigneeId('')
+    setTaskErrorMessage('')
   }, [])
 
   const loadProjectDetail = useCallback(async () => {
@@ -162,6 +173,8 @@ export function ProjectDetailPage() {
       setCommentContent('')
       setCommentsErrorMessage('')
       setCommentSubmitErrorMessage('')
+      setIsTaskCreateOpen(false)
+      resetTaskCreateForm('todo')
     } catch (error) {
       setErrorMessage(
         getApiErrorMessage(error, 'プロジェクト詳細を取得できませんでした。'),
@@ -169,11 +182,16 @@ export function ProjectDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [projectId])
+  }, [projectId, resetTaskCreateForm])
 
   useEffect(() => {
     void loadProjectDetail()
   }, [loadProjectDetail])
+
+  const handleTaskCreateClick = (status: TaskStatus) => {
+    resetTaskCreateForm(status)
+    setIsTaskCreateOpen(true)
+  }
 
   const handleTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -228,6 +246,7 @@ export function ProjectDetailPage() {
       setTaskPriority('medium')
       setTaskDueOn('')
       setTaskAssigneeId('')
+      setIsTaskCreateOpen(false)
     } catch (error) {
       setTaskErrorMessage(
         getApiErrorMessage(error, 'タスクを作成できませんでした。'),
@@ -440,23 +459,13 @@ export function ProjectDetailPage() {
             </div>
           </section>
 
-          <TaskCreateForm
-            isTaskSubmitting={isTaskSubmitting}
-            onSubmit={handleTaskSubmit}
-            setTaskAssigneeId={setTaskAssigneeId}
-            setTaskDescription={setTaskDescription}
-            setTaskDueOn={setTaskDueOn}
-            setTaskPriority={setTaskPriority}
-            setTaskStatus={setTaskStatus}
-            setTaskTitle={setTaskTitle}
-            taskAssigneeId={taskAssigneeId}
-            taskDescription={taskDescription}
-            taskDueOn={taskDueOn}
-            taskErrorMessage={taskErrorMessage}
-            taskPriority={taskPriority}
-            taskStatus={taskStatus}
-            taskTitle={taskTitle}
-            teamMembers={teamMembers}
+          <KanbanBoard
+            kanban={kanban}
+            onTaskCreateClick={handleTaskCreateClick}
+            onTaskSelect={(taskId) => {
+              void handleTaskSelect(taskId)
+            }}
+            selectedTaskId={selectedTaskId}
           />
 
           <TaskEditPanel
@@ -490,13 +499,44 @@ export function ProjectDetailPage() {
             teamMembers={teamMembers}
           />
 
-          <KanbanBoard
-            kanban={kanban}
-            onTaskSelect={(taskId) => {
-              void handleTaskSelect(taskId)
-            }}
-            selectedTaskId={selectedTaskId}
-          />
+          {isTaskCreateOpen ? (
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 px-4 py-8">
+              <div className="w-full max-w-2xl">
+                <div className="mb-3 flex justify-end">
+                  <button
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+                    disabled={isTaskSubmitting}
+                    onClick={() => {
+                      setIsTaskCreateOpen(false)
+                      setTaskErrorMessage('')
+                    }}
+                    type="button"
+                  >
+                    閉じる
+                  </button>
+                </div>
+
+                <TaskCreateForm
+                  isTaskSubmitting={isTaskSubmitting}
+                  onSubmit={handleTaskSubmit}
+                  setTaskAssigneeId={setTaskAssigneeId}
+                  setTaskDescription={setTaskDescription}
+                  setTaskDueOn={setTaskDueOn}
+                  setTaskPriority={setTaskPriority}
+                  setTaskStatus={setTaskStatus}
+                  setTaskTitle={setTaskTitle}
+                  taskAssigneeId={taskAssigneeId}
+                  taskDescription={taskDescription}
+                  taskDueOn={taskDueOn}
+                  taskErrorMessage={taskErrorMessage}
+                  taskPriority={taskPriority}
+                  taskStatus={taskStatus}
+                  taskTitle={taskTitle}
+                  teamMembers={teamMembers}
+                />
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

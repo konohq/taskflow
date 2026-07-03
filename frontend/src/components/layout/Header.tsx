@@ -11,7 +11,7 @@ function getPageTitle(pathname: string) {
   if (pathname === '/teams') return 'チーム'
   if (pathname.startsWith('/teams/')) return 'チーム詳細'
   if (pathname.startsWith('/projects/')) return 'プロジェクト詳細'
-  if (pathname === '/my/tasks') return 'マイタスク'
+  if (pathname === '/my/tasks') return '作成したタスク'
   return 'TaskFlow AI'
 }
 

@@ -1,5 +1,9 @@
 import { apiClient } from './client'
-import type { TeamMembersResponse } from '../types/team'
+import type {
+  CreateTeamMemberInput,
+  TeamMemberResponse,
+  TeamMembersResponse,
+} from '../types/team'
 
 export async function fetchTeamMembers(teamId: string) {
   const response = await apiClient.get<TeamMembersResponse>(
@@ -7,4 +11,18 @@ export async function fetchTeamMembers(teamId: string) {
   )
 
   return response.data.members
+}
+
+export async function createTeamMember(
+  teamId: string,
+  input: CreateTeamMemberInput,
+) {
+  const response = await apiClient.post<TeamMemberResponse>(
+    `/teams/${teamId}/members`,
+    {
+      member: input,
+    },
+  )
+
+  return response.data.member
 }
