@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createTaskComment, fetchTaskComments } from '../api/comments'
-import { fetchProject, fetchProjectKanban } from '../api/projects'
+import { deleteProject, fetchProject, fetchProjectKanban } from '../api/projects'
 import { fetchTeamMembers } from '../api/teamMembers'
-import { createProjectTask, fetchTask, updateTask } from '../api/tasks'
+import { createProjectTask, deleteTask, fetchTask, updateTask } from '../api/tasks'
 import { KanbanBoard } from '../features/kanban/KanbanBoard'
 import { TaskCreateForm } from '../features/tasks/TaskCreateForm'
 import { TaskEditPanel } from '../features/tasks/TaskEditPanel'
@@ -85,8 +85,26 @@ function replaceTaskInKanban(
   }
 }
 
+function removeTaskFromKanban(
+  currentKanban: KanbanResponse,
+  taskId: number,
+): KanbanResponse {
+  return {
+    ...currentKanban,
+    columns: {
+      todo: currentKanban.columns.todo.filter((task) => task.id !== taskId),
+      in_progress: currentKanban.columns.in_progress.filter(
+        (task) => task.id !== taskId,
+      ),
+      review: currentKanban.columns.review.filter((task) => task.id !== taskId),
+      done: currentKanban.columns.done.filter((task) => task.id !== taskId),
+    },
+  }
+}
+
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
   const [project, setProject] = useState<Project | null>(null)
   const [kanban, setKanban] = useState<KanbanResponse | null>(null)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
@@ -121,6 +139,9 @@ export function ProjectDetailPage() {
   const [commentSubmitErrorMessage, setCommentSubmitErrorMessage] =
     useState('')
   const [isCommentSubmitting, setIsCommentSubmitting] = useState(false)
+  const [projectDeleteErrorMessage, setProjectDeleteErrorMessage] = useState('')
+  const [isProjectDeleting, setIsProjectDeleting] = useState(false)
+  const [isTaskDeleting, setIsTaskDeleting] = useState(false)
   const selectedTaskIdRef = useRef<number | null>(null)
 
   const setEditFormValues = useCallback((task: Task) => {
@@ -173,6 +194,7 @@ export function ProjectDetailPage() {
       setCommentContent('')
       setCommentsErrorMessage('')
       setCommentSubmitErrorMessage('')
+      setProjectDeleteErrorMessage('')
       setIsTaskCreateOpen(false)
       resetTaskCreateForm('todo')
     } catch (error) {
@@ -369,6 +391,79 @@ export function ProjectDetailPage() {
     }
   }
 
+  const handleProjectDelete = async () => {
+    if (isProjectDeleting || !project || !projectId) return
+
+    const confirmed = window.confirm(
+      `プロジェクト「${project.name}」を削除します。\n関連するタスクとコメントも削除されます。この操作は取り消せません。`,
+    )
+
+    if (!confirmed) return
+
+    setIsProjectDeleting(true)
+    setProjectDeleteErrorMessage('')
+
+    try {
+      await deleteProject(projectId)
+      void navigate('/projects')
+    } catch (error) {
+      setProjectDeleteErrorMessage(
+        getApiErrorMessage(error, 'プロジェクトを削除できませんでした。'),
+      )
+    } finally {
+      setIsProjectDeleting(false)
+    }
+  }
+
+  const handleTaskDelete = async () => {
+    if (isTaskDeleting || !selectedTask) return
+
+    if (selectedTaskIdRef.current !== selectedTask.id) {
+      setTaskDetailErrorMessage('選択中のタスク詳細を読み込んでいます。')
+      return
+    }
+
+    const taskId = selectedTask.id
+    const confirmed = window.confirm(
+      `タスク「${selectedTask.title}」を削除します。\n関連するコメントも削除されます。この操作は取り消せません。`,
+    )
+
+    if (!confirmed) return
+
+    setIsTaskDeleting(true)
+    setTaskDetailErrorMessage('')
+    setTaskUpdateMessage('')
+    setCommentSubmitErrorMessage('')
+
+    try {
+      await deleteTask(String(taskId))
+
+      setKanban((currentKanban) => {
+        if (!currentKanban) return currentKanban
+
+        return removeTaskFromKanban(currentKanban, taskId)
+      })
+
+      if (selectedTaskIdRef.current === taskId) {
+        selectedTaskIdRef.current = null
+        setSelectedTaskId(null)
+        setSelectedTask(null)
+        setComments([])
+        setCommentContent('')
+        setCommentsErrorMessage('')
+        setCommentSubmitErrorMessage('')
+      }
+    } catch (error) {
+      if (selectedTaskIdRef.current !== taskId) return
+
+      setTaskDetailErrorMessage(
+        getApiErrorMessage(error, 'タスクを削除できませんでした。'),
+      )
+    } finally {
+      setIsTaskDeleting(false)
+    }
+  }
+
   const handleCommentSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -455,8 +550,28 @@ export function ProjectDetailPage() {
                   {project.description || '説明は未設定です。'}
                 </p>
               </div>
-              <ProjectStatusBadge status={project.status} />
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <ProjectStatusBadge status={project.status} />
+                <button
+                  className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 focus:outline-none focus:ring-4 focus:ring-rose-100 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300"
+                  disabled={isProjectDeleting}
+                  onClick={() => {
+                    void handleProjectDelete()
+                  }}
+                  type="button"
+                >
+                  {isProjectDeleting
+                    ? '削除しています...'
+                    : 'プロジェクトを削除'}
+                </button>
+              </div>
             </div>
+
+            {projectDeleteErrorMessage ? (
+              <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                {projectDeleteErrorMessage}
+              </div>
+            ) : null}
           </section>
 
           <KanbanBoard
@@ -481,9 +596,11 @@ export function ProjectDetailPage() {
             editTaskTitle={editTaskTitle}
             isCommentSubmitting={isCommentSubmitting}
             isCommentsLoading={isCommentsLoading}
+            isTaskDeleting={isTaskDeleting}
             isTaskDetailLoading={isTaskDetailLoading}
             isTaskUpdating={isTaskUpdating}
             onCommentSubmit={handleCommentSubmit}
+            onTaskDelete={handleTaskDelete}
             onTaskUpdate={handleTaskUpdate}
             selectedTask={selectedTask}
             selectedTaskId={selectedTaskId}

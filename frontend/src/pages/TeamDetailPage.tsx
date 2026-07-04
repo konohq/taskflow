@@ -2,8 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createTeamProject, fetchTeamProjects } from '../api/projects'
-import { fetchTeam } from '../api/teams'
-import { createTeamMember, fetchTeamMembers } from '../api/teamMembers'
+import { deleteTeam, fetchTeam } from '../api/teams'
+import {
+  createTeamMember,
+  deleteTeamMember,
+  fetchTeamMembers,
+} from '../api/teamMembers'
 import type { Project, ProjectStatus } from '../types/project'
 import type { Team, TeamMember, TeamMemberRole } from '../types/team'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -83,8 +87,12 @@ export function TeamDetailPage() {
   const [memberRole, setMemberRole] =
     useState<Exclude<TeamMemberRole, 'owner'>>('member')
   const [memberErrorMessage, setMemberErrorMessage] = useState('')
+  const [memberDeleteErrorMessage, setMemberDeleteErrorMessage] = useState('')
   const [memberSuccessMessage, setMemberSuccessMessage] = useState('')
   const [isMemberSubmitting, setIsMemberSubmitting] = useState(false)
+  const [deletingMemberId, setDeletingMemberId] = useState<number | null>(null)
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState('')
+  const [isDeletingTeam, setIsDeletingTeam] = useState(false)
 
   const loadTeamDetail = useCallback(async () => {
     if (!teamId) {
@@ -178,6 +186,7 @@ export function TeamDetailPage() {
 
     setIsMemberSubmitting(true)
     setMemberErrorMessage('')
+    setMemberDeleteErrorMessage('')
     setMemberSuccessMessage('')
 
     try {
@@ -198,6 +207,69 @@ export function TeamDetailPage() {
       setIsMemberSubmitting(false)
     }
   }
+
+  const handleMemberDelete = async (member: TeamMember) => {
+    if (
+      deletingMemberId ||
+      !teamId ||
+      team?.current_user_role !== 'owner' ||
+      member.role === 'owner'
+    ) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      `メンバー「${member.user.name}」をこのチームから削除します。\nユーザーアカウント自体は削除されません。`,
+    )
+
+    if (!confirmed) return
+
+    setDeletingMemberId(member.id)
+    setMemberDeleteErrorMessage('')
+    setMemberSuccessMessage('')
+
+    try {
+      await deleteTeamMember(teamId, member.id)
+      setMembers((currentMembers) =>
+        currentMembers.filter((currentMember) => currentMember.id !== member.id),
+      )
+    } catch (error) {
+      setMemberDeleteErrorMessage(
+        getApiErrorMessage(error, 'メンバーをチームから削除できませんでした。'),
+      )
+    } finally {
+      setDeletingMemberId(null)
+    }
+  }
+
+  const handleTeamDelete = async () => {
+    if (isDeletingTeam || !team || !teamId) return
+
+    const confirmed = window.confirm(
+      `チーム「${team.name}」を削除します。\n関連するプロジェクト、タスク、コメントも削除されます。この操作は取り消せません。`,
+    )
+
+    if (!confirmed) return
+
+    setIsDeletingTeam(true)
+    setDeleteErrorMessage('')
+
+    try {
+      await deleteTeam(teamId)
+      void navigate('/teams')
+    } catch (error) {
+      setDeleteErrorMessage(
+        getApiErrorMessage(error, 'チームを削除できませんでした。'),
+      )
+    } finally {
+      setIsDeletingTeam(false)
+    }
+  }
+
+  const memberGridColumns =
+    team?.current_user_role === 'owner'
+      ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]'
+      : 'grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]'
 
   return (
     <div className="space-y-6">
@@ -235,8 +307,28 @@ export function TeamDetailPage() {
                   {team.description || '説明は未設定です。'}
                 </p>
               </div>
-              <RoleBadge role={team.current_user_role} />
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <RoleBadge role={team.current_user_role} />
+                {team.current_user_role === 'owner' ? (
+                  <button
+                    className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 focus:outline-none focus:ring-4 focus:ring-rose-100 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300"
+                    disabled={isDeletingTeam}
+                    onClick={() => {
+                      void handleTeamDelete()
+                    }}
+                    type="button"
+                  >
+                    {isDeletingTeam ? '削除しています...' : 'チームを削除'}
+                  </button>
+                ) : null}
+              </div>
             </div>
+
+            {deleteErrorMessage ? (
+              <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                {deleteErrorMessage}
+              </div>
+            ) : null}
 
             <dl className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -411,29 +503,70 @@ export function TeamDetailPage() {
                 </div>
               ) : (
                 <div className="mt-6 overflow-hidden rounded-lg border border-slate-200">
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
+                  <div
+                    className={[
+                      'grid gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500',
+                      memberGridColumns,
+                    ].join(' ')}
+                  >
                     <span>名前</span>
                     <span>メールアドレス</span>
                     <span>role</span>
+                    {team.current_user_role === 'owner' ? (
+                      <span className="text-right">操作</span>
+                    ) : null}
                   </div>
                   <ul className="divide-y divide-slate-100">
-                    {members.map((member) => (
-                      <li
-                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-4 px-4 py-4"
-                        key={member.id}
-                      >
-                        <span className="min-w-0 truncate text-sm font-semibold text-slate-900">
-                          {member.user.name}
-                        </span>
-                        <span className="min-w-0 truncate text-sm text-slate-600">
-                          {member.user.email}
-                        </span>
-                        <RoleBadge role={member.role} />
-                      </li>
-                    ))}
+                    {members.map((member) => {
+                      const canDeleteMember =
+                        team.current_user_role === 'owner' &&
+                        member.role !== 'owner'
+
+                      return (
+                        <li
+                          className={[
+                            'grid items-center gap-4 px-4 py-4',
+                            memberGridColumns,
+                          ].join(' ')}
+                          key={member.id}
+                        >
+                          <span className="min-w-0 truncate text-sm font-semibold text-slate-900">
+                            {member.user.name}
+                          </span>
+                          <span className="min-w-0 truncate text-sm text-slate-600">
+                            {member.user.email}
+                          </span>
+                          <RoleBadge role={member.role} />
+                          {team.current_user_role === 'owner' ? (
+                            <div className="flex justify-end">
+                              {canDeleteMember ? (
+                                <button
+                                  className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 focus:outline-none focus:ring-4 focus:ring-rose-100 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300"
+                                  disabled={deletingMemberId !== null}
+                                  onClick={() => {
+                                    void handleMemberDelete(member)
+                                  }}
+                                  type="button"
+                                >
+                                  {deletingMemberId === member.id
+                                    ? '削除中...'
+                                    : '削除'}
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               )}
+
+              {memberDeleteErrorMessage ? (
+                <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                  {memberDeleteErrorMessage}
+                </div>
+              ) : null}
             </div>
 
             <form

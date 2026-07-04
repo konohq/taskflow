@@ -26,3 +26,10 @@ export async function createTeamMember(
 
   return response.data.member
 }
+
+export async function deleteTeamMember(
+  teamId: string,
+  memberId: number | string,
+) {
+  await apiClient.delete(`/teams/${teamId}/members/${memberId}`)
+}

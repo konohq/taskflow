@@ -18,9 +18,11 @@ type TaskEditPanelProps = {
   editTaskTitle: string
   isCommentSubmitting: boolean
   isCommentsLoading: boolean
+  isTaskDeleting: boolean
   isTaskDetailLoading: boolean
   isTaskUpdating: boolean
   onCommentSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
+  onTaskDelete: () => void | Promise<void>
   onTaskUpdate: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
   selectedTask: Task | null
   selectedTaskId: number | null
@@ -49,9 +51,11 @@ export function TaskEditPanel({
   editTaskTitle,
   isCommentSubmitting,
   isCommentsLoading,
+  isTaskDeleting,
   isTaskDetailLoading,
   isTaskUpdating,
   onCommentSubmit,
+  onTaskDelete,
   onTaskUpdate,
   selectedTask,
   selectedTaskId,
@@ -250,13 +254,23 @@ export function TaskEditPanel({
               </dl>
             </div>
 
-            <div className="lg:col-span-2">
+            <div className="flex flex-col gap-3 lg:col-span-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-indigo-300"
-                disabled={isTaskUpdating}
+                disabled={isTaskUpdating || isTaskDeleting}
                 type="submit"
               >
                 {isTaskUpdating ? '更新しています...' : 'タスクを更新'}
+              </button>
+              <button
+                className="rounded-lg border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 focus:outline-none focus:ring-4 focus:ring-rose-100 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300"
+                disabled={isTaskUpdating || isTaskDeleting}
+                onClick={() => {
+                  void onTaskDelete()
+                }}
+                type="button"
+              >
+                {isTaskDeleting ? '削除しています...' : 'タスクを削除'}
               </button>
             </div>
           </form>

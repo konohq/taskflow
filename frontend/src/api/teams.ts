@@ -20,3 +20,7 @@ export async function createTeam(input: CreateTeamInput) {
 
   return response.data.team
 }
+
+export async function deleteTeam(teamId: string) {
+  await apiClient.delete(`/teams/${teamId}`)
+}

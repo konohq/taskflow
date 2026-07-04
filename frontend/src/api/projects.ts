@@ -41,3 +41,7 @@ export async function fetchProjectKanban(projectId: string) {
 
   return response.data
 }
+
+export async function deleteProject(projectId: string) {
+  await apiClient.delete(`/projects/${projectId}`)
+}

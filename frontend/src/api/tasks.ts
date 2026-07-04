@@ -35,6 +35,10 @@ export async function updateTask(taskId: string, input: UpdateTaskInput) {
   return response.data.task
 }
 
+export async function deleteTask(taskId: string) {
+  await apiClient.delete(`/tasks/${taskId}`)
+}
+
 export async function fetchMyTasks(filters: MyTasksFilterParams = {}) {
   const response = await apiClient.get<MyTasksResponse>('/my/tasks', {
     params: {
